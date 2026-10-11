@@ -1,0 +1,8 @@
+**/target/
+.cache/
+coregw-k6/results/
+*.log
+.DS_Store
+__pycache__/
+.idea/
+*.iml

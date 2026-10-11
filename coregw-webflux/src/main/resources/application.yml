@@ -1,0 +1,43 @@
+spring:
+  application:
+    name: coregw-webflux
+  profiles:
+    default: resilient
+  threads:
+    virtual:
+      enabled: false
+  http:
+    codecs:
+      max-in-memory-size: 1MB
+server:
+  port: ${PORT:8080}
+  tomcat:
+    threads:
+      max: 200
+      min-spare: 10
+gateway:
+  core-url: ${CORE_URL:http://localhost:9090}
+  core-path: ${CORE_PATH:/orders}
+  max-connections: ${CORE_MAX_CONNECTIONS:500}
+  acquire-timeout: ${CORE_ACQUIRE_TIMEOUT:100ms}
+  connect-timeout: ${CORE_CONNECT_TIMEOUT:1s}
+  response-timeout: ${CORE_RESPONSE_TIMEOUT:3s}
+  resilience-enabled: true
+  max-concurrent-calls: ${CORE_MAX_CONCURRENT_CALLS:500}
+  window-size: 100
+  minimum-calls: 50
+  failure-rate: 50
+  open-wait: 10s
+  half-open-calls: 10
+  expose-thread-model: false
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: never
+logging:
+  level:
+    reactor.netty.http.client: ERROR

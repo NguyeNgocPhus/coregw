@@ -1,0 +1,10 @@
+{
+  "name": "coregw-k6",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests/*.test.js",
+    "check": "node --check create-order.js",
+    "benchmark": "python3 run-benchmarks.py"
+  }
+}

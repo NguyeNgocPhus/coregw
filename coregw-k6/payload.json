@@ -1,0 +1,6 @@
+{
+  "customerId": "customer-benchmark",
+  "items": [{"productId": "product-001", "quantity": 1}],
+  "amount": 100000,
+  "currency": "VND"
+}
