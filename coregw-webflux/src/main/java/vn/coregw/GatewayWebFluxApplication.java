@@ -6,6 +6,6 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 
 @SpringBootApplication
 @EnableConfigurationProperties(GatewaySettings.class)
-public class GatewayApplication {
-    public static void main(String[] args) { SpringApplication.run(GatewayApplication.class, args); }
+public class GatewayWebFluxApplication {
+    public static void main(String[] args) { SpringApplication.run(GatewayWebFluxApplication.class, args); }
 }

@@ -1,5 +1,6 @@
 package vn.coregw;
 
+import vn.coregw.redis.OrderRedisStore;
 import io.github.resilience4j.bulkhead.Bulkhead;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.github.resilience4j.reactor.bulkhead.operator.BulkheadOperator;
@@ -12,10 +13,13 @@ import reactor.core.publisher.Mono;
 @RestController
 public class OrderController {
     private final WebClient client;
+    private final OrderRedisStore orderRedis;
     private final GatewaySettings settings;
     private final CircuitBreaker breaker;
     private final Bulkhead bulkhead;
-    public OrderController(WebClient client, GatewaySettings settings, CircuitBreaker breaker, Bulkhead bulkhead) {
+    public OrderController(WebClient client, GatewaySettings settings, CircuitBreaker breaker, Bulkhead bulkhead,
+            OrderRedisStore orderRedis) {
+        this.orderRedis = orderRedis;
         this.client = client; this.settings = settings; this.breaker = breaker; this.bulkhead = bulkhead;
     }
     @PostMapping(value = "/api/orders", consumes = MediaType.APPLICATION_JSON_VALUE)
@@ -23,6 +27,7 @@ public class OrderController {
             @RequestHeader(value = "X-Request-ID", required = false) String suppliedId,
             @RequestHeader(HttpHeaders.CONTENT_TYPE) String contentType) {
         String id = GatewayResponses.requestId(suppliedId);
+        String redisKey = orderRedis.key(id);
         boolean virtual = Thread.currentThread().isVirtual();
         Mono<ResponseEntity<byte[]>> call = Mono.defer(() -> client.post().uri(settings.coreEndpoint())
                 .header(HttpHeaders.CONTENT_TYPE, contentType).header("X-Request-ID", id).bodyValue(body)
@@ -32,7 +37,17 @@ public class OrderController {
         if (settings.resilienceEnabled()) call = call
                 .transformDeferred(CircuitBreakerOperator.of(breaker))
                 .transformDeferred(BulkheadOperator.of(bulkhead));
-        return call.onErrorResume(error -> Mono.just(GatewayResponses.error(error, id)))
+        return orderRedis.save(redisKey + ":request", body).then(call)
+                .flatMap(reply -> orderRedis.save(redisKey + ":response", reply.getBody()).thenReturn(reply))
+                .doOnNext(reply -> {
+                    if (reply.getStatusCode().isError())
+                        GatewayErrorLog.upstream(reply.getStatusCode().value(), id, settings.coreEndpoint().toString());
+                })
+                .onErrorResume(error -> {
+                    var reply = GatewayResponses.error(error, id);
+                    GatewayErrorLog.failure(reply, error, id, settings.coreEndpoint().toString());
+                    return Mono.just(reply);
+                })
                 .map(reply -> settings.exposeThreadModel() ? ResponseEntity.status(reply.getStatusCode())
                         .headers(reply.getHeaders()).header("X-Gateway-Thread-Virtual", Boolean.toString(virtual))
                         .body(reply.getBody()) : reply);

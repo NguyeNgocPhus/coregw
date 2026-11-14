@@ -43,6 +43,22 @@ BASE_URL=http://localhost:9090 ORDER_PATH=/orders MODE=direct PROFILE=baseline \
 
 Mỗi request có X-Request-ID riêng gồm run, scenario, VU và iteration. JSON `payload.json` chỉ là dữ liệu benchmark, gateway không áp schema nghiệp vụ. Nếu core thật có response khác `201` với `orderId` dạng string, điều chỉnh validation trước khi đo.
 
+## Orders với constant-arrival-rate
+
+`orders-constant-arrival-rate.js` dùng cùng payload, endpoint và kiểm tra response như `orders-100-users.js`. Mặc định phát 100 request/giây trong 120 giây, cấp trước 100 VUs và cho phép tăng tối đa 1000 VUs. Mỗi iteration gửi một POST; không thêm `sleep` vì executor tự điều tiết tốc độ.
+
+Chạy từ thư mục `coregw-k6`:
+
+```sh
+k6 run orders-constant-arrival-rate.js
+
+BASE_URL=http://localhost:8080 RATE=200 DURATION=120s \
+  PREALLOCATED_VUS=200 MAX_VUS=2000 \
+  k6 run orders-constant-arrival-rate.js
+```
+
+`RATE` là tốc độ request mục tiêu, không phải số user đồng thời. Điều chỉnh VUs theo thời gian phản hồi; có thể ước lượng số VUs cần thiết bằng RPS × thời gian iteration (giây), cộng thêm dư địa. Nếu không đủ VUs, k6 ghi nhận `dropped_iterations` và bài test fail threshold `count==0`. Các threshold response giữ như file mẫu: tỷ lệ lỗi HTTP <1%, checks thành công ≥99%. Sau thời gian phát tải, script cho request đang chạy tối đa 10 giây để hoàn tất.
+
 ## Runner matrix
 
 Chạy từ thư mục gốc sau `./mvnw package`:

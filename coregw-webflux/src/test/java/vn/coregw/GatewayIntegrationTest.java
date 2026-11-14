@@ -51,8 +51,8 @@ class GatewayIntegrationTest {
             catch (java.io.IOException ignored) { }
         });
         core.start();
-        try (var app = new SpringApplicationBuilder(GatewayApplication.class).run(
-                "--spring.profiles.active=" + profile, "--server.port=0", "--spring.main.banner-mode=off",
+        try (var app = new SpringApplicationBuilder(GatewayWebFluxApplication.class).run(
+                "--spring.profiles.active=" + profile, "--server.port=0", "--spring.main.banner-mode=off", "--app.redis.enabled=false",
                 "--gateway.core-url=http://127.0.0.1:" + core.getAddress().getPort(),
                 "--gateway.max-concurrent-calls=1", "--gateway.window-size=2", "--gateway.minimum-calls=2",
                 "--gateway.half-open-calls=1", "--gateway.open-wait=200ms", "--gateway.response-timeout=500ms",

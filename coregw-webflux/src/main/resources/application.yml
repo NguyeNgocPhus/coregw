@@ -11,19 +11,17 @@ spring:
       max-in-memory-size: 1MB
 server:
   port: ${PORT:8080}
-  tomcat:
-    threads:
-      max: 200
-      min-spare: 10
 gateway:
+  order-redis:
+    ttl: ${ORDER_REDIS_TTL:1h}
   core-url: ${CORE_URL:http://localhost:9090}
   core-path: ${CORE_PATH:/orders}
-  max-connections: ${CORE_MAX_CONNECTIONS:500}
+  max-connections: ${CORE_MAX_CONNECTIONS:1000}
   acquire-timeout: ${CORE_ACQUIRE_TIMEOUT:100ms}
   connect-timeout: ${CORE_CONNECT_TIMEOUT:1s}
   response-timeout: ${CORE_RESPONSE_TIMEOUT:3s}
   resilience-enabled: true
-  max-concurrent-calls: ${CORE_MAX_CONCURRENT_CALLS:500}
+  max-concurrent-calls: ${CORE_MAX_CONCURRENT_CALLS:1000}
   window-size: 100
   minimum-calls: 50
   failure-rate: 50
@@ -31,6 +29,20 @@ gateway:
   half-open-calls: 10
   expose-thread-model: false
 management:
+  metrics:
+    tags:
+      application: ${spring.application.name}
+      environment: ${DEPLOYMENT_ENVIRONMENT:local}
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+        jvm.gc.pause: true
+      minimum-expected-value:
+        http.server.requests: 100us
+        jvm.gc.pause: 100us
+      maximum-expected-value:
+        http.server.requests: 5s
+        jvm.gc.pause: 10s
   endpoints:
     web:
       exposure:
@@ -41,3 +53,15 @@ management:
 logging:
   level:
     reactor.netty.http.client: ERROR
+
+app:
+  redis:
+    enabled: ${REDIS_ENABLED:true}
+    host: ${REDIS_HOST:localhost}
+    port: ${REDIS_PORT:6379}
+    database: ${REDIS_DATABASE:0}
+    username: ${REDIS_USERNAME:}
+    password: ${REDIS_PASSWORD:}
+    ssl: ${REDIS_SSL:false}
+    command-timeout: 1s
+    connect-timeout: 1s

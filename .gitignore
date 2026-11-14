@@ -6,3 +6,5 @@ coregw-k6/results/
 __pycache__/
 .idea/
 *.iml
+coregw-mvc/monitoring/signoz/pours/
+coregw-mvc/monitoring/signoz/casting.yaml.lock

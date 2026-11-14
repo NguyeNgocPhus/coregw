@@ -1,0 +1,7 @@
+# Benchmark endpoint and seed data only. Reusable Redis beans live in RedisConfiguration.
+app:
+  redis:
+    enabled: ${REDIS_ENABLED:true}
+redis-bench:
+  keys: 10000
+  payload-bytes: 1024

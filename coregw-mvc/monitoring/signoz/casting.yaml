@@ -1,0 +1,114 @@
+# Generated using Foundry v0.3.0. Run forge after editing this source file.
+apiVersion: v1alpha1
+kind: Installation
+metadata:
+  name: coregw-signoz
+spec:
+  deployment:
+    flavor: compose
+    mode: docker
+  signoz:
+    spec:
+      image: signoz/signoz:v0.146.0
+  ingester:
+    spec:
+      image: signoz/signoz-otel-collector:v0.144.14
+      config:
+        data:
+          opamp.yaml: |
+            server_endpoint: ws://coregw-signoz-signoz-0:4320/v1/opamp
+          ingester.yaml: |
+            receivers:
+              prometheus:
+                config:
+                  global:
+                    scrape_interval: 5s
+                  scrape_configs:
+                    - job_name: coregw-app
+                      metrics_path: /actuator/prometheus
+                      file_sd_configs:
+                        - files: ["/etc/coregw-discovery/app-targets.json"]
+                          refresh_interval: 5s
+                      relabel_configs:
+                        - source_labels: [application]
+                          target_label: job
+                    - job_name: coregw-native
+                      static_configs:
+                        - targets: ["host.docker.internal:9257"]
+                          labels:
+                            telemetry_source: native_os
+                      relabel_configs:
+                        - target_label: instance
+                          replacement: host.docker.internal:8080
+                      metric_relabel_configs:
+                        - source_labels: [application]
+                          regex: coregw-mvc|coregw-webflux
+                          action: keep
+                        - source_labels: [application]
+                          target_label: job
+                    - job_name: redis
+                      static_configs:
+                        - targets: ["host.docker.internal:9121"]
+            service:
+              pipelines:
+                metrics:
+                  receivers: [otlp, prometheus]
+  patches:
+    - target: deployment/compose.yaml
+      operations:
+        # Local development: supported anonymous admin mode (no login screen).
+        - op: add
+          path: /services/coregw-signoz-signoz-0/environment/-
+          value: SIGNOZ_IDENTN_IMPERSONATION_ENABLED=true
+        - op: add
+          path: /services/coregw-signoz-signoz-0/environment/-
+          value: SIGNOZ_IDENTN_TOKENIZER_ENABLED=false
+        - op: add
+          path: /services/coregw-signoz-signoz-0/environment/-
+          value: SIGNOZ_IDENTN_APIKEY_ENABLED=false
+        - op: add
+          path: /services/coregw-signoz-signoz-0/environment/-
+          value: SIGNOZ_USER_ROOT_ENABLED=true
+        - op: add
+          path: /services/coregw-signoz-signoz-0/environment/-
+          value: SIGNOZ_USER_ROOT_EMAIL=root@coregw.local
+        - op: add
+          path: /services/coregw-signoz-signoz-0/environment/-
+          value: SIGNOZ_USER_ROOT_PASSWORD=CoregwLocalRoot2026!
+        - op: add
+          path: /services/coregw-signoz-signoz-0/environment/-
+          value: SIGNOZ_USER_ROOT_ORG_NAME=coregw-local
+        - op: add
+          path: /services/coregw-signoz-signoz-0/environment/-
+          value: SIGNOZ_USER_ROOT_ORG_ID=01a15a57-2837-7c04-b984-953ed7298da1
+        - op: replace
+          path: /services/coregw-signoz-signoz-0/ports
+          value: ["127.0.0.1:3301:8080"]
+        - op: replace
+          path: /services/ingester/ports
+          value: ["127.0.0.1:4317:4317", "127.0.0.1:4318:4318"]
+        - op: add
+          path: /services/ingester/volumes/-
+          value: ../../../../../.cache/signoz/discovery:/etc/coregw-discovery:ro
+        - op: add
+          path: /services/ingester/extra_hosts
+          value: ["host.docker.internal:host-gateway"]
+    # Local Docker host: limit per-query parallelism and allow aggregation spill.
+    # These are local resource settings, not universal production sizing defaults.
+    - target: deployment/telemetrystore/clickhouse/config-0-0.yaml
+      operations:
+        - op: add
+          path: /profiles/default/max_threads
+          value: 2
+        - op: add
+          path: /profiles/default/max_insert_threads
+          value: 1
+        - op: add
+          path: /profiles/default/max_memory_usage
+          value: 1073741824
+        - op: add
+          path: /profiles/default/max_bytes_before_external_group_by
+          value: 67108864
+        - op: add
+          path: /profiles/default/max_bytes_before_external_sort
+          value: 67108864

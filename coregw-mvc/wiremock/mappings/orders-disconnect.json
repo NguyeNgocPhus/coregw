@@ -1,0 +1,19 @@
+{
+  "name": "orders-disconnect",
+  "priority": 1,
+  "request": {
+    "method": "POST",
+    "urlPath": "/orders",
+    "bodyPatterns": [
+      {
+        "matchesJsonPath": {
+          "expression": "$.mockScenario",
+          "equalTo": "disconnect"
+        }
+      }
+    ]
+  },
+  "response": {
+    "fault": "CONNECTION_RESET_BY_PEER"
+  }
+}

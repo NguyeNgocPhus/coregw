@@ -126,3 +126,48 @@ curl http://localhost:8080/actuator/prometheus
 Runner lưu snapshot metrics cuối mỗi lượt. Để theo dõi cả lúc tải tăng và phục hồi, scrape Prometheus mỗi 1–5 giây hoặc dùng JFR (`-XX:StartFlightRecording=filename=recording.jfr,settings=profile`) với cùng cấu hình ở cả ba chế độ. Resilience metrics được bind trực tiếp bằng resilience4j-micrometer; không cần Spring AOP.
 
 Đây là môi trường benchmark local, chưa thêm authentication, persistence hoặc xử lý nghiệp vụ đơn hàng.
+
+## Lưu request/response orders vào Redis
+
+Cả MVC và WebFlux mặc định kết nối Redis tại `localhost:6379`. Khởi động Redis Docker từ thư mục gốc:
+
+```sh
+docker compose -f coregw-mvc/compose.redis.yml up -d redis
+docker compose -f coregw-mvc/compose.redis.yml exec -T redis redis-cli ping
+```
+
+`POST /api/orders` thực hiện SET request body trước khi gọi core và SET response body sau khi nhận được response thực tế từ core (bao gồm HTTP 4xx/5xx). Body được lưu nguyên bytes, không parse hay serialize lại JSON. Mỗi lượt gọi có hai key:
+
+```text
+coregw:orders:<X-Request-ID>:<UUID>:request
+coregw:orders:<X-Request-ID>:<UUID>:response
+```
+
+Nếu thiếu `X-Request-ID`, gateway tự tạo ID và trả lại qua response header. UUID riêng cho từng lượt gọi tránh ghi đè khi client dùng lại request ID. Nếu core timeout, mất kết nối hoặc bị circuit/bulkhead chặn thì chỉ lưu request; không lưu response lỗi do gateway tự tạo vào key response của core.
+
+Mỗi key có TTL mặc định 1 giờ tính từ lúc SET, chỉnh bằng `ORDER_REDIS_TTL` (ví dụ `10m`). Có thể cấu hình `REDIS_HOST`, `REDIS_PORT`, `REDIS_DATABASE`, `REDIS_USERNAME`, `REDIS_PASSWORD`, `REDIS_SSL`; tắt ghi Redis bằng `REDIS_ENABLED=false`. Gateway chạy trong container phải dùng hostname Redis và mạng Docker phù hợp thay cho `localhost`.
+
+MVC dùng RedisTemplate đồng bộ, hỗ trợ `app.redis.mode=pool` (mặc định) hoặc `multiplexing`. WebFlux dùng ReactiveRedisTemplate, chờ hoàn tất lệnh ghi bằng reactive chain. Redis lỗi sẽ được ghi log và gateway vẫn tiếp tục gọi/trả kết quả core; không retry tạo order. Hai lệnh Redis nằm trong thời gian xử lý HTTP nên kết quả k6 sau thay đổi có tính thêm chi phí Redis. Compose hiện dùng Redis không persistence; dữ liệu mất khi Redis khởi động lại.
+
+Kiểm tra key vừa ghi (dùng request ID riêng, ví dụ `orders-demo`):
+
+```sh
+curl -i http://localhost:8080/api/orders \
+  -H 'Content-Type: application/json' -H 'X-Request-ID: orders-demo' \
+  --data-binary @coregw-k6/payload.json
+docker compose -f coregw-mvc/compose.redis.yml exec -T redis \
+  redis-cli --scan --pattern 'coregw:orders:orders-demo:*'
+# Dùng key đầy đủ từ kết quả trên:
+docker compose -f coregw-mvc/compose.redis.yml exec -T redis redis-cli GET '<key>'
+docker compose -f coregw-mvc/compose.redis.yml exec -T redis redis-cli TTL '<key>'
+```
+
+Integration test với Redis local: `ORDER_REDIS_TEST=true ./mvnw test`. Test tự dọn các key mang request ID riêng của test. Hiện test benchmark cũ `RedisBenchmarkIntegrationTest` trong MVC tham chiếu các class chưa có trong source nên lệnh test toàn repo bị lỗi compile; WebFlux có thể chạy độc lập bằng `ORDER_REDIS_TEST=true ./mvnw -pl coregw-webflux test`.
+
+## Redis Lettuce benchmark (MVC)
+
+So sánh multiplexing trên shared connections và connection pool ngay trong
+`coregw-mvc`: [cấu hình, k6 runner và cách đọc kết quả](coregw-mvc/REDIS-BENCHMARK.md).
+Chỉ bật khi có profile `redis-bench`.
+
+Theo dõi benchmark bằng [SigNoz: app/JVM, Lettuce/pool, Redis metrics và traces](coregw-mvc/monitoring/signoz/README.md).

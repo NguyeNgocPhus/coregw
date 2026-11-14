@@ -1,0 +1,3142 @@
+{
+  "schemaVersion": "v6",
+  "generateName": true,
+  "tags": [
+    {
+      "key": "tag",
+      "value": "coregw"
+    },
+    {
+      "key": "tag",
+      "value": "operations"
+    }
+  ],
+  "spec": {
+    "display": {
+      "name": "Coregw — MVC / WebFlux · JVM & HTTP Operations",
+      "description": "JVM template adapted to Micrometer: CPU, memory pools, GC, threads, class loading, HTTP. Select one instance for diagnosis. No-data is not zero/healthy. No agent JVM metrics are duplicated."
+    },
+    "variables": [
+      {
+        "kind": "ListVariable",
+        "spec": {
+          "name": "service",
+          "display": {
+            "name": "Service",
+            "description": ""
+          },
+          "allowAllValue": true,
+          "allowMultiple": true,
+          "customAllValue": ".*",
+          "capturingRegexp": "",
+          "sort": "alphabetical-asc",
+          "plugin": {
+            "kind": "signoz/CustomVariable",
+            "spec": {
+              "customValue": "coregw-mvc,coregw-webflux"
+            }
+          }
+        }
+      },
+      {
+        "kind": "ListVariable",
+        "spec": {
+          "name": "instance",
+          "display": {
+            "name": "JVM instance",
+            "description": ""
+          },
+          "allowAllValue": true,
+          "allowMultiple": true,
+          "customAllValue": ".*",
+          "capturingRegexp": "",
+          "sort": "alphabetical-asc",
+          "plugin": {
+            "kind": "signoz/DynamicVariable",
+            "spec": {
+              "name": "service.instance.id",
+              "signal": "metrics"
+            }
+          }
+        }
+      },
+      {
+        "kind": "ListVariable",
+        "spec": {
+          "name": "mode",
+          "display": {
+            "name": "Redis mode",
+            "description": ""
+          },
+          "allowAllValue": true,
+          "allowMultiple": true,
+          "customAllValue": ".*",
+          "capturingRegexp": "",
+          "sort": "alphabetical-asc",
+          "plugin": {
+            "kind": "signoz/DynamicVariable",
+            "spec": {
+              "name": "redis_mode",
+              "signal": "metrics"
+            }
+          }
+        }
+      },
+      {
+        "kind": "ListVariable",
+        "spec": {
+          "name": "environment",
+          "display": {
+            "name": "Environment",
+            "description": ""
+          },
+          "allowAllValue": true,
+          "allowMultiple": true,
+          "customAllValue": ".*",
+          "capturingRegexp": "",
+          "sort": "alphabetical-asc",
+          "plugin": {
+            "kind": "signoz/DynamicVariable",
+            "spec": {
+              "name": "environment",
+              "signal": "metrics"
+            }
+          }
+        }
+      }
+    ],
+    "panels": {
+      "status": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "App scrape health",
+            "description": "1 = reachable, 0 = down. Read together with Sample age; scalar panels can retain the last value in the selected range. Synthetic up has no mode/environment tag."
+          },
+          "plugin": {
+            "kind": "signoz/NumberPanel",
+            "spec": {
+              "visualization": {
+                "timePreference": "global_time"
+              },
+              "formatting": {
+                "unit": "short",
+                "decimalPrecision": "2"
+              },
+              "thresholds": null
+            }
+          },
+          "queries": [
+            {
+              "kind": "scalar",
+              "spec": {
+                "name": "A",
+                "plugin": {
+                  "kind": "signoz/PromQLQuery",
+                  "spec": {
+                    "name": "A",
+                    "query": "min({__name__=\"up\",\"service.name\"=~\"$service\",\"service.instance.id\"=~\"$instance\"})",
+                    "legend": "",
+                    "disabled": false
+                  }
+                }
+              }
+            }
+          ],
+          "links": []
+        }
+      },
+      "sample-age": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "Telemetry sample age",
+            "description": "Age of the newest scrape sample per target, worst selected target. Investigate values above 20s at a 5s scrape interval. A stopped collector can otherwise leave stale scalar values visible."
+          },
+          "plugin": {
+            "kind": "signoz/NumberPanel",
+            "spec": {
+              "visualization": {
+                "timePreference": "global_time"
+              },
+              "formatting": {
+                "unit": "s",
+                "decimalPrecision": "2"
+              },
+              "thresholds": [
+                {
+                  "value": 20,
+                  "operator": "above",
+                  "unit": "s",
+                  "color": "#F59E0B",
+                  "format": "text"
+                },
+                {
+                  "value": 60,
+                  "operator": "above",
+                  "unit": "s",
+                  "color": "#EF4444",
+                  "format": "text"
+                }
+              ]
+            }
+          },
+          "queries": [
+            {
+              "kind": "scalar",
+              "spec": {
+                "name": "A",
+                "plugin": {
+                  "kind": "signoz/PromQLQuery",
+                  "spec": {
+                    "name": "A",
+                    "query": "max(time() - timestamp({__name__=\"up\",\"service.name\"=~\"$service\",\"service.instance.id\"=~\"$instance\"}))",
+                    "legend": "",
+                    "disabled": false
+                  }
+                }
+              }
+            }
+          ],
+          "links": []
+        }
+      },
+      "instance-count": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "Scrape target count",
+            "description": "Targets represented by scrape health series; includes down targets. Check Sample age and do not interpret as healthy JVM count."
+          },
+          "plugin": {
+            "kind": "signoz/NumberPanel",
+            "spec": {
+              "visualization": {
+                "timePreference": "global_time"
+              },
+              "formatting": {
+                "unit": "short",
+                "decimalPrecision": "2"
+              },
+              "thresholds": null
+            }
+          },
+          "queries": [
+            {
+              "kind": "scalar",
+              "spec": {
+                "name": "A",
+                "plugin": {
+                  "kind": "signoz/PromQLQuery",
+                  "spec": {
+                    "name": "A",
+                    "query": "count({__name__=\"up\",\"service.name\"=~\"$service\",\"service.instance.id\"=~\"$instance\"})",
+                    "legend": "",
+                    "disabled": false
+                  }
+                }
+              }
+            }
+          ],
+          "links": []
+        }
+      },
+      "cpu-now": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "CPU usage · max",
+            "description": "Fraction of CPU capacity visible to JVM. This is not percent of one core."
+          },
+          "plugin": {
+            "kind": "signoz/NumberPanel",
+            "spec": {
+              "visualization": {
+                "timePreference": "global_time"
+              },
+              "formatting": {
+                "unit": "percentunit",
+                "decimalPrecision": "2"
+              },
+              "thresholds": [
+                {
+                  "value": 0.8,
+                  "operator": "above",
+                  "unit": "percentunit",
+                  "color": "#F59E0B",
+                  "format": "text"
+                }
+              ]
+            }
+          },
+          "queries": [
+            {
+              "kind": "scalar",
+              "spec": {
+                "name": "A",
+                "plugin": {
+                  "kind": "signoz/PromQLQuery",
+                  "spec": {
+                    "name": "A",
+                    "query": "max({__name__=\"process_cpu_usage\",\"service.name\"=~\"$service\",\"service.instance.id\"=~\"$instance\",redis_mode=~\"$mode\",environment=~\"$environment\"})",
+                    "legend": "",
+                    "disabled": false
+                  }
+                }
+              }
+            }
+          ],
+          "links": []
+        }
+      },
+      "heap-now": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "Heap utilization",
+            "description": "Sum heap used per JVM divided by sum positive heap limits; ignores -1 undefined pool limits. Does not measure process RSS."
+          },
+          "plugin": {
+            "kind": "signoz/NumberPanel",
+            "spec": {
+              "visualization": {
+                "timePreference": "global_time"
+              },
+              "formatting": {
+                "unit": "percentunit",
+                "decimalPrecision": "2"
+              },
+              "thresholds": [
+                {
+                  "value": 0.8,
+                  "operator": "above",
+                  "unit": "percentunit",
+                  "color": "#F59E0B",
+                  "format": "text"
+                }
+              ]
+            }
+          },
+          "queries": [
+            {
+              "kind": "scalar",
+              "spec": {
+                "name": "A",
+                "plugin": {
+                  "kind": "signoz/PromQLQuery",
+                  "spec": {
+                    "name": "A",
+                    "query": "max((sum by (\"service.name\",\"service.instance.id\",redis_mode) ({__name__=\"jvm_memory_used_bytes\",\"service.name\"=~\"$service\",\"service.instance.id\"=~\"$instance\",redis_mode=~\"$mode\",environment=~\"$environment\",area=\"heap\"})) / (sum by (\"service.name\",\"service.instance.id\",redis_mode) ({__name__=\"jvm_memory_max_bytes\",\"service.name\"=~\"$service\",\"service.instance.id\"=~\"$instance\",redis_mode=~\"$mode\",environment=~\"$environment\",area=\"heap\"} > 0)))",
+                    "legend": "",
+                    "disabled": false
+                  }
+                }
+              }
+            }
+          ],
+          "links": []
+        }
+      },
+      "gc-now": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "GC pause fraction",
+            "description": "GC pause seconds per wall second, worst selected JVM; rate window applies."
+          },
+          "plugin": {
+            "kind": "signoz/NumberPanel",
+            "spec": {
+              "visualization": {
+                "timePreference": "global_time"
+              },
+              "formatting": {
+                "unit": "percentunit",
+                "decimalPrecision": "2"
+              },
+              "thresholds": [
+                {
+                  "value": 0.05,
+                  "operator": "above",
+                  "unit": "percentunit",
+                  "color": "#F59E0B",
+                  "format": "text"
+                }
+              ]
+            }
+          },
+          "queries": [
+            {
+              "kind": "scalar",
+              "spec": {
+                "name": "A",
+                "plugin": {
+                  "kind": "signoz/PromQLQuery",
+                  "spec": {
+                    "name": "A",
+                    "query": "max(sum by (\"service.name\",\"service.instance.id\",redis_mode) (rate({__name__=\"jvm_gc_pause_seconds.sum\",\"service.name\"=~\"$service\",\"service.instance.id\"=~\"$instance\",redis_mode=~\"$mode\",environment=~\"$environment\"}[1m])))",
+                    "legend": "",
+                    "disabled": false
+                  }
+                }
+              }
+            }
+          ],
+          "links": []
+        }
+      },
+      "rps-now": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "HTTP requests/s",
+            "description": "Total selected traffic, excludes actuator and benchmark prepare. Zero traffic is not an availability result."
+          },
+          "plugin": {
+            "kind": "signoz/NumberPanel",
+            "spec": {
+              "visualization": {
+                "timePreference": "global_time"
+              },
+              "formatting": {
+                "unit": "reqps",
+                "decimalPrecision": "2"
+              },
+              "thresholds": null
+            }
+          },
+          "queries": [
+            {
+              "kind": "scalar",
+              "spec": {
+                "name": "A",
+                "plugin": {
+                  "kind": "signoz/PromQLQuery",
+                  "spec": {
+                    "name": "A",
+                    "query": "sum(sum by (\"service.name\",\"service.instance.id\",redis_mode) (rate({__name__=\"http_server_requests_seconds.count\",\"service.name\"=~\"$service\",\"service.instance.id\"=~\"$instance\",redis_mode=~\"$mode\",environment=~\"$environment\",uri!~\"/actuator.*|/api/bench/redis/prepare|UNKNOWN|NOT_FOUND\"}[1m])))",
+                    "legend": "",
+                    "disabled": false
+                  }
+                }
+              }
+            }
+          ],
+          "links": []
+        }
+      },
+      "p99-now": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "HTTP p99 · max",
+            "description": "Server-side histogram estimate. No requests/histogram means no percentile. End-to-end latency remains in k6."
+          },
+          "plugin": {
+            "kind": "signoz/NumberPanel",
+            "spec": {
+              "visualization": {
+                "timePreference": "global_time"
+              },
+              "formatting": {
+                "unit": "s",
+                "decimalPrecision": "2"
+              },
+              "thresholds": null
+            }
+          },
+          "queries": [
+            {
+              "kind": "scalar",
+              "spec": {
+                "name": "A",
+                "plugin": {
+                  "kind": "signoz/PromQLQuery",
+                  "spec": {
+                    "name": "A",
+                    "query": "max(histogram_quantile(.99, sum by (le,\"service.name\",\"service.instance.id\",redis_mode) (rate({__name__=\"http_server_requests_seconds.bucket\",\"service.name\"=~\"$service\",\"service.instance.id\"=~\"$instance\",redis_mode=~\"$mode\",environment=~\"$environment\",uri!~\"/actuator.*|/api/bench/redis/prepare|UNKNOWN|NOT_FOUND\"}[1m]))))",
+                    "legend": "",
+                    "disabled": false
+                  }
+                }
+              }
+            }
+          ],
+          "links": []
+        }
+      },
+      "http-rate": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "HTTP throughput by JVM",
+            "description": "Excludes scrape/prepare traffic. Grouped per instance and Redis mode."
+          },
+          "plugin": {
+            "kind": "signoz/TimeSeriesPanel",
+            "spec": {
+              "visualization": {
+                "timePreference": "global_time"
+              },
+              "formatting": {
+                "unit": "reqps",
+                "decimalPrecision": "2"
+              },
+              "thresholds": null,
+              "chartAppearance": {
+                "lineInterpolation": "linear",
+                "showPoints": false,
+                "lineStyle": "solid",
+                "fillMode": "none",
+                "spanGaps": {
+                  "fillOnlyBelow": false,
+                  "fillLessThan": ""
+                }
+              },
+              "axes": {
+                "softMin": 0,
+                "softMax": null,
+                "isLogScale": false
+              },
+              "legend": {
+                "position": "bottom",
+                "mode": "list",
+                "customColors": null
+              }
+            }
+          },
+          "queries": [
+            {
+              "kind": "time_series",
+              "spec": {
+                "name": "A",
+                "plugin": {
+                  "kind": "signoz/PromQLQuery",
+                  "spec": {
+                    "name": "A",
+                    "query": "sum by (\"service.name\",\"service.instance.id\",redis_mode) (rate({__name__=\"http_server_requests_seconds.count\",\"service.name\"=~\"$service\",\"service.instance.id\"=~\"$instance\",redis_mode=~\"$mode\",environment=~\"$environment\",uri!~\"/actuator.*|/api/bench/redis/prepare|UNKNOWN|NOT_FOUND\"}[1m]))",
+                    "legend": "{{service.name}}",
+                    "disabled": false
+                  }
+                }
+              }
+            }
+          ],
+          "links": []
+        }
+      },
+      "http-errors": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "HTTP 5xx ratio",
+            "description": "HTTP 5xx / all business responses. A missing error series becomes zero only if a total series exists. Transport failures before the server are visible in k6, not here."
+          },
+          "plugin": {
+            "kind": "signoz/TimeSeriesPanel",
+            "spec": {
+              "visualization": {
+                "timePreference": "global_time"
+              },
+              "formatting": {
+                "unit": "percentunit",
+                "decimalPrecision": "2"
+              },
+              "thresholds": [
+                {
+                  "value": 0.01,
+                  "unit": "percentunit",
+                  "color": "#F59E0B",
+                  "label": "Example: 1% errors; tune to your SLO"
+                }
+              ],
+              "chartAppearance": {
+                "lineInterpolation": "linear",
+                "showPoints": false,
+                "lineStyle": "solid",
+                "fillMode": "none",
+                "spanGaps": {
+                  "fillOnlyBelow": false,
+                  "fillLessThan": ""
+                }
+              },
+              "axes": {
+                "softMin": 0,
+                "softMax": null,
+                "isLogScale": false
+              },
+              "legend": {
+                "position": "bottom",
+                "mode": "list",
+                "customColors": null
+              }
+            }
+          },
+          "queries": [
+            {
+              "kind": "time_series",
+              "spec": {
+                "name": "A",
+                "plugin": {
+                  "kind": "signoz/PromQLQuery",
+                  "spec": {
+                    "name": "A",
+                    "query": "((sum by (\"service.name\",\"service.instance.id\",redis_mode) (rate({__name__=\"http_server_requests_seconds.count\",\"service.name\"=~\"$service\",\"service.instance.id\"=~\"$instance\",redis_mode=~\"$mode\",environment=~\"$environment\",uri!~\"/actuator.*|/api/bench/redis/prepare|UNKNOWN|NOT_FOUND\",status=~\"5..\"}[1m]))) or on(\"service.name\",\"service.instance.id\",redis_mode) (0 * (sum by (\"service.name\",\"service.instance.id\",redis_mode) (rate({__name__=\"http_server_requests_seconds.count\",\"service.name\"=~\"$service\",\"service.instance.id\"=~\"$instance\",redis_mode=~\"$mode\",environment=~\"$environment\",uri!~\"/actuator.*|/api/bench/redis/prepare|UNKNOWN|NOT_FOUND\"}[1m]))))) / clamp_min((sum by (\"service.name\",\"service.instance.id\",redis_mode) (rate({__name__=\"http_server_requests_seconds.count\",\"service.name\"=~\"$service\",\"service.instance.id\"=~\"$instance\",redis_mode=~\"$mode\",environment=~\"$environment\",uri!~\"/actuator.*|/api/bench/redis/prepare|UNKNOWN|NOT_FOUND\"}[1m]))), 1e-9)",
+                    "legend": "{{service.name}}",
+                    "disabled": false
+                  }
+                }
+              }
+            }
+          ],
+          "links": []
+        }
+      },
+      "http-latency": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "HTTP latency · p50 / p90 / p99",
+            "description": "Percentiles from buckets, never average percentile values across JVMs. Each JVM is plotted separately."
+          },
+          "plugin": {
+            "kind": "signoz/TimeSeriesPanel",
+            "spec": {
+              "visualization": {
+                "timePreference": "global_time"
+              },
+              "formatting": {
+                "unit": "s",
+                "decimalPrecision": "2"
+              },
+              "thresholds": null,
+              "chartAppearance": {
+                "lineInterpolation": "linear",
+                "showPoints": false,
+                "lineStyle": "solid",
+                "fillMode": "none",
+                "spanGaps": {
+                  "fillOnlyBelow": false,
+                  "fillLessThan": ""
+                }
+              },
+              "axes": {
+                "softMin": 0,
+                "softMax": null,
+                "isLogScale": false
+              },
+              "legend": {
+                "position": "bottom",
+                "mode": "list",
+                "customColors": null
+              }
+            }
+          },
+          "queries": [
+            {
+              "kind": "time_series",
+              "spec": {
+                "name": "A",
+                "plugin": {
+                  "kind": "signoz/PromQLQuery",
+                  "spec": {
+                    "name": "A",
+                    "query": "label_replace((histogram_quantile(.5, sum by (le,\"service.name\",\"service.instance.id\",redis_mode) (rate({__name__=\"http_server_requests_seconds.bucket\",\"service.name\"=~\"$service\",\"service.instance.id\"=~\"$instance\",redis_mode=~\"$mode\",environment=~\"$environment\",uri!~\"/actuator.*|/api/bench/redis/prepare|UNKNOWN|NOT_FOUND\"}[1m])))), \"view\", \"p50\", \"__name__\", \".*\") or label_replace((histogram_quantile(.9, sum by (le,\"service.name\",\"service.instance.id\",redis_mode) (rate({__name__=\"http_server_requests_seconds.bucket\",\"service.name\"=~\"$service\",\"service.instance.id\"=~\"$instance\",redis_mode=~\"$mode\",environment=~\"$environment\",uri!~\"/actuator.*|/api/bench/redis/prepare|UNKNOWN|NOT_FOUND\"}[1m])))), \"view\", \"p90\", \"__name__\", \".*\") or label_replace((histogram_quantile(.99, sum by (le,\"service.name\",\"service.instance.id\",redis_mode) (rate({__name__=\"http_server_requests_seconds.bucket\",\"service.name\"=~\"$service\",\"service.instance.id\"=~\"$instance\",redis_mode=~\"$mode\",environment=~\"$environment\",uri!~\"/actuator.*|/api/bench/redis/prepare|UNKNOWN|NOT_FOUND\"}[1m])))), \"view\", \"p99\", \"__name__\", \".*\")",
+                    "legend": "{{view}} · {{service.name}}",
+                    "disabled": false
+                  }
+                }
+              }
+            }
+          ],
+          "links": []
+        }
+      },
+      "http-endpoints": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "HTTP p99 by endpoint",
+            "description": "Separate route/method series help identify the slow endpoint. A route with no samples has no percentile."
+          },
+          "plugin": {
+            "kind": "signoz/TimeSeriesPanel",
+            "spec": {
+              "visualization": {
+                "timePreference": "global_time"
+              },
+              "formatting": {
+                "unit": "s",
+                "decimalPrecision": "2"
+              },
+              "thresholds": null,
+              "chartAppearance": {
+                "lineInterpolation": "linear",
+                "showPoints": false,
+                "lineStyle": "solid",
+                "fillMode": "none",
+                "spanGaps": {
+                  "fillOnlyBelow": false,
+                  "fillLessThan": ""
+                }
+              },
+              "axes": {
+                "softMin": 0,
+                "softMax": null,
+                "isLogScale": false
+              },
+              "legend": {
+                "position": "bottom",
+                "mode": "list",
+                "customColors": null
+              }
+            }
+          },
+          "queries": [
+            {
+              "kind": "time_series",
+              "spec": {
+                "name": "A",
+                "plugin": {
+                  "kind": "signoz/PromQLQuery",
+                  "spec": {
+                    "name": "A",
+                    "query": "histogram_quantile(.99, sum by (le,\"service.name\",\"service.instance.id\",redis_mode,uri,method) (rate({__name__=\"http_server_requests_seconds.bucket\",\"service.name\"=~\"$service\",\"service.instance.id\"=~\"$instance\",redis_mode=~\"$mode\",environment=~\"$environment\",uri!~\"/actuator.*|/api/bench/redis/prepare|UNKNOWN|NOT_FOUND\"}[1m])))",
+                    "legend": "{{method}} {{uri}} · {{service.name}}",
+                    "disabled": false
+                  }
+                }
+              }
+            }
+          ],
+          "links": []
+        }
+      },
+      "tomcat-threads": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "Tomcat threads · busy / current / max",
+            "description": "Platform request workers by connector. Requires server.tomcat.mbeanregistry.enabled=true and application restart. Busy includes I/O wait, not just CPU work. Virtual-thread executors require separate interpretation."
+          },
+          "plugin": {
+            "kind": "signoz/TimeSeriesPanel",
+            "spec": {
+              "visualization": {
+                "timePreference": "global_time"
+              },
+              "formatting": {
+                "unit": "short",
+                "decimalPrecision": "2"
+              },
+              "thresholds": null,
+              "chartAppearance": {
+                "lineInterpolation": "linear",
+                "showPoints": false,
+                "lineStyle": "solid",
+                "fillMode": "none",
+                "spanGaps": {
+                  "fillOnlyBelow": false,
+                  "fillLessThan": ""
+                }
+              },
+              "axes": {
+                "softMin": 0,
+                "softMax": null,
+                "isLogScale": false
+              },
+              "legend": {
+                "position": "bottom",
+                "mode": "list",
+                "customColors": null
+              }
+            }
+          },
+          "queries": [
+            {
+              "kind": "time_series",
+              "spec": {
+                "name": "A",
+                "plugin": {
+                  "kind": "signoz/PromQLQuery",
+                  "spec": {
+                    "name": "A",
+                    "query": "label_replace(({__name__=\"tomcat_threads_busy_threads\",\"service.name\"=~\"$service\",\"service.instance.id\"=~\"$instance\",redis_mode=~\"$mode\",environment=~\"$environment\"}), \"view\", \"busy\", \"__name__\", \".*\") or label_replace(({__name__=\"tomcat_threads_current_threads\",\"service.name\"=~\"$service\",\"service.instance.id\"=~\"$instance\",redis_mode=~\"$mode\",environment=~\"$environment\"}), \"view\", \"current\", \"__name__\", \".*\") or label_replace(({__name__=\"tomcat_threads_config_max_threads\",\"service.name\"=~\"$service\",\"service.instance.id\"=~\"$instance\",redis_mode=~\"$mode\",environment=~\"$environment\"}), \"view\", \"max\", \"__name__\", \".*\")",
+                    "legend": "{{view}} · {{service.name}} · {{name}}",
+                    "disabled": false
+                  }
+                }
+              }
+            }
+          ],
+          "links": []
+        }
+      },
+      "tomcat-utilization": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "Tomcat worker utilization · busy / max",
+            "description": "Sustained near 100% indicates worker saturation. This is not queue length or queue wait time. Missing series is not zero."
+          },
+          "plugin": {
+            "kind": "signoz/TimeSeriesPanel",
+            "spec": {
+              "visualization": {
+                "timePreference": "global_time"
+              },
+              "formatting": {
+                "unit": "percentunit",
+                "decimalPrecision": "2"
+              },
+              "thresholds": [
+                {
+                  "value": 0.8,
+                  "unit": "percentunit",
+                  "color": "#F59E0B",
+                  "label": "80% workers busy"
+                },
+                {
+                  "value": 0.95,
+                  "unit": "percentunit",
+                  "color": "#EF4444",
+                  "label": "95% workers busy"
+                }
+              ],
+              "chartAppearance": {
+                "lineInterpolation": "linear",
+                "showPoints": false,
+                "lineStyle": "solid",
+                "fillMode": "none",
+                "spanGaps": {
+                  "fillOnlyBelow": false,
+                  "fillLessThan": ""
+                }
+              },
+              "axes": {
+                "softMin": 0,
+                "softMax": null,
+                "isLogScale": false
+              },
+              "legend": {
+                "position": "bottom",
+                "mode": "list",
+                "customColors": null
+              }
+            }
+          },
+          "queries": [
+            {
+              "kind": "time_series",
+              "spec": {
+                "name": "A",
+                "plugin": {
+                  "kind": "signoz/PromQLQuery",
+                  "spec": {
+                    "name": "A",
+                    "query": "{__name__=\"tomcat_threads_busy_threads\",\"service.name\"=~\"$service\",\"service.instance.id\"=~\"$instance\",redis_mode=~\"$mode\",environment=~\"$environment\"} / ({__name__=\"tomcat_threads_config_max_threads\",\"service.name\"=~\"$service\",\"service.instance.id\"=~\"$instance\",redis_mode=~\"$mode\",environment=~\"$environment\"} > 0)",
+                    "legend": "{{service.name}} · {{name}}",
+                    "disabled": false
+                  }
+                }
+              }
+            }
+          ],
+          "links": []
+        }
+      },
+      "tomcat-connections": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "Tomcat connections · current / keepalive / max",
+            "description": "Open connections include idle keepalive; connections minus busy threads is not queue length."
+          },
+          "plugin": {
+            "kind": "signoz/TimeSeriesPanel",
+            "spec": {
+              "visualization": {
+                "timePreference": "global_time"
+              },
+              "formatting": {
+                "unit": "short",
+                "decimalPrecision": "2"
+              },
+              "thresholds": null,
+              "chartAppearance": {
+                "lineInterpolation": "linear",
+                "showPoints": false,
+                "lineStyle": "solid",
+                "fillMode": "none",
+                "spanGaps": {
+                  "fillOnlyBelow": false,
+                  "fillLessThan": ""
+                }
+              },
+              "axes": {
+                "softMin": 0,
+                "softMax": null,
+                "isLogScale": false
+              },
+              "legend": {
+                "position": "bottom",
+                "mode": "list",
+                "customColors": null
+              }
+            }
+          },
+          "queries": [
+            {
+              "kind": "time_series",
+              "spec": {
+                "name": "A",
+                "plugin": {
+                  "kind": "signoz/PromQLQuery",
+                  "spec": {
+                    "name": "A",
+                    "query": "label_replace(({__name__=\"tomcat_connections_current_connections\",\"service.name\"=~\"$service\",\"service.instance.id\"=~\"$instance\",redis_mode=~\"$mode\",environment=~\"$environment\"}), \"view\", \"current\", \"__name__\", \".*\") or label_replace(({__name__=\"tomcat_connections_keepalive_current_connections\",\"service.name\"=~\"$service\",\"service.instance.id\"=~\"$instance\",redis_mode=~\"$mode\",environment=~\"$environment\"}), \"view\", \"keepalive\", \"__name__\", \".*\") or label_replace(({__name__=\"tomcat_connections_config_max_connections\",\"service.name\"=~\"$service\",\"service.instance.id\"=~\"$instance\",redis_mode=~\"$mode\",environment=~\"$environment\"}), \"view\", \"max\", \"__name__\", \".*\")",
+                    "legend": "{{view}} · {{service.name}} · {{name}}",
+                    "disabled": false
+                  }
+                }
+              }
+            }
+          ],
+          "links": []
+        }
+      },
+      "netty-pool": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "WebFlux core connections · active / idle / max",
+            "description": "WebFlux outbound core connection pool. No series under MVC is expected. Connections are not event-loop threads."
+          },
+          "plugin": {
+            "kind": "signoz/TimeSeriesPanel",
+            "spec": {
+              "visualization": {
+                "timePreference": "global_time"
+              },
+              "formatting": {
+                "unit": "short",
+                "decimalPrecision": "2"
+              },
+              "thresholds": null,
+              "chartAppearance": {
+                "lineInterpolation": "linear",
+                "showPoints": false,
+                "lineStyle": "solid",
+                "fillMode": "none",
+                "spanGaps": {
+                  "fillOnlyBelow": false,
+                  "fillLessThan": ""
+                }
+              },
+              "axes": {
+                "softMin": 0,
+                "softMax": null,
+                "isLogScale": false
+              },
+              "legend": {
+                "position": "bottom",
+                "mode": "list",
+                "customColors": null
+              }
+            }
+          },
+          "queries": [
+            {
+              "kind": "time_series",
+              "spec": {
+                "name": "A",
+                "plugin": {
+                  "kind": "signoz/PromQLQuery",
+                  "spec": {
+                    "name": "A",
+                    "query": "label_replace(({__name__=\"reactor_netty_connection_provider_active_connections\",\"service.name\"=~\"$service\",\"service.instance.id\"=~\"$instance\",redis_mode=~\"$mode\",environment=~\"$environment\"}), \"view\", \"active\", \"__name__\", \".*\") or label_replace(({__name__=\"reactor_netty_connection_provider_idle_connections\",\"service.name\"=~\"$service\",\"service.instance.id\"=~\"$instance\",redis_mode=~\"$mode\",environment=~\"$environment\"}), \"view\", \"idle\", \"__name__\", \".*\") or label_replace(({__name__=\"reactor_netty_connection_provider_max_connections\",\"service.name\"=~\"$service\",\"service.instance.id\"=~\"$instance\",redis_mode=~\"$mode\",environment=~\"$environment\"}), \"view\", \"max\", \"__name__\", \".*\")",
+                    "legend": "{{view}} · {{service.name}} · {{name}}",
+                    "disabled": false
+                  }
+                }
+              }
+            }
+          ],
+          "links": []
+        }
+      },
+      "netty-pending": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "WebFlux core connections · pending / pending limit",
+            "description": "Requests waiting to acquire an outbound core connection; not Tomcat worker queue length. No series under MVC is expected."
+          },
+          "plugin": {
+            "kind": "signoz/TimeSeriesPanel",
+            "spec": {
+              "visualization": {
+                "timePreference": "global_time"
+              },
+              "formatting": {
+                "unit": "short",
+                "decimalPrecision": "2"
+              },
+              "thresholds": null,
+              "chartAppearance": {
+                "lineInterpolation": "linear",
+                "showPoints": false,
+                "lineStyle": "solid",
+                "fillMode": "none",
+                "spanGaps": {
+                  "fillOnlyBelow": false,
+                  "fillLessThan": ""
+                }
+              },
+              "axes": {
+                "softMin": 0,
+                "softMax": null,
+                "isLogScale": false
+              },
+              "legend": {
+                "position": "bottom",
+                "mode": "list",
+                "customColors": null
+              }
+            }
+          },
+          "queries": [
+            {
+              "kind": "time_series",
+              "spec": {
+                "name": "A",
+                "plugin": {
+                  "kind": "signoz/PromQLQuery",
+                  "spec": {
+                    "name": "A",
+                    "query": "label_replace(({__name__=\"reactor_netty_connection_provider_pending_connections\",\"service.name\"=~\"$service\",\"service.instance.id\"=~\"$instance\",redis_mode=~\"$mode\",environment=~\"$environment\"}), \"view\", \"pending\", \"__name__\", \".*\") or label_replace(({__name__=\"reactor_netty_connection_provider_max_pending_connections\",\"service.name\"=~\"$service\",\"service.instance.id\"=~\"$instance\",redis_mode=~\"$mode\",environment=~\"$environment\"}), \"view\", \"pending limit\", \"__name__\", \".*\")",
+                    "legend": "{{view}} · {{service.name}} · {{name}}",
+                    "disabled": false
+                  }
+                }
+              }
+            }
+          ],
+          "links": []
+        }
+      },
+      "cpu-history": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "Process CPU vs host CPU",
+            "description": "Both are capacity fractions; host includes Docker, SigNoz, k6 and other applications."
+          },
+          "plugin": {
+            "kind": "signoz/TimeSeriesPanel",
+            "spec": {
+              "visualization": {
+                "timePreference": "global_time"
+              },
+              "formatting": {
+                "unit": "percentunit",
+                "decimalPrecision": "2"
+              },
+              "thresholds": null,
+              "chartAppearance": {
+                "lineInterpolation": "linear",
+                "showPoints": false,
+                "lineStyle": "solid",
+                "fillMode": "none",
+                "spanGaps": {
+                  "fillOnlyBelow": false,
+                  "fillLessThan": ""
+                }
+              },
+              "axes": {
+                "softMin": 0,
+                "softMax": null,
+                "isLogScale": false
+              },
+              "legend": {
+                "position": "bottom",
+                "mode": "list",
+                "customColors": null
+              }
+            }
+          },
+          "queries": [
+            {
+              "kind": "time_series",
+              "spec": {
+                "name": "A",
+                "plugin": {
+                  "kind": "signoz/PromQLQuery",
+                  "spec": {
+                    "name": "A",
+                    "query": "label_replace(({__name__=\"process_cpu_usage\",\"service.name\"=~\"$service\",\"service.instance.id\"=~\"$instance\",redis_mode=~\"$mode\",environment=~\"$environment\"}), \"view\", \"process\", \"__name__\", \".*\") or label_replace(({__name__=\"system_cpu_usage\",\"service.name\"=~\"$service\",\"service.instance.id\"=~\"$instance\",redis_mode=~\"$mode\",environment=~\"$environment\"}), \"view\", \"host\", \"__name__\", \".*\")",
+                    "legend": "{{view}} · {{service.name}}",
+                    "disabled": false
+                  }
+                }
+              }
+            }
+          ],
+          "links": []
+        }
+      },
+      "cpu-cores": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "JVM CPU consumption · core equivalents",
+            "description": "CPU nanoseconds/s divided by 1e9. 1.0 = one CPU core busy. This differs from process CPU capacity percent."
+          },
+          "plugin": {
+            "kind": "signoz/TimeSeriesPanel",
+            "spec": {
+              "visualization": {
+                "timePreference": "global_time"
+              },
+              "formatting": {
+                "unit": "short",
+                "decimalPrecision": "2"
+              },
+              "thresholds": null,
+              "chartAppearance": {
+                "lineInterpolation": "linear",
+                "showPoints": false,
+                "lineStyle": "solid",
+                "fillMode": "none",
+                "spanGaps": {
+                  "fillOnlyBelow": false,
+                  "fillLessThan": ""
+                }
+              },
+              "axes": {
+                "softMin": 0,
+                "softMax": null,
+                "isLogScale": false
+              },
+              "legend": {
+                "position": "bottom",
+                "mode": "list",
+                "customColors": null
+              }
+            }
+          },
+          "queries": [
+            {
+              "kind": "time_series",
+              "spec": {
+                "name": "A",
+                "plugin": {
+                  "kind": "signoz/PromQLQuery",
+                  "spec": {
+                    "name": "A",
+                    "query": "rate({__name__=\"process_cpu_time_ns_total\",\"service.name\"=~\"$service\",\"service.instance.id\"=~\"$instance\",redis_mode=~\"$mode\",environment=~\"$environment\"}[1m]) / 1e9",
+                    "legend": "{{service.name}}",
+                    "disabled": false
+                  }
+                }
+              }
+            }
+          ],
+          "links": []
+        }
+      },
+      "cpu-count": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "Available processors · minimum selected",
+            "description": "Processors visible to JVM. Inspect one instance for exact capacity."
+          },
+          "plugin": {
+            "kind": "signoz/NumberPanel",
+            "spec": {
+              "visualization": {
+                "timePreference": "global_time"
+              },
+              "formatting": {
+                "unit": "short",
+                "decimalPrecision": "2"
+              },
+              "thresholds": null
+            }
+          },
+          "queries": [
+            {
+              "kind": "scalar",
+              "spec": {
+                "name": "A",
+                "plugin": {
+                  "kind": "signoz/PromQLQuery",
+                  "spec": {
+                    "name": "A",
+                    "query": "min({__name__=\"system_cpu_count\",\"service.name\"=~\"$service\",\"service.instance.id\"=~\"$instance\",redis_mode=~\"$mode\",environment=~\"$environment\"})",
+                    "legend": "",
+                    "disabled": false
+                  }
+                }
+              }
+            }
+          ],
+          "links": []
+        }
+      },
+      "uptime": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "Uptime · youngest selected JVM",
+            "description": "Low value shows a recent process restart; not host uptime."
+          },
+          "plugin": {
+            "kind": "signoz/NumberPanel",
+            "spec": {
+              "visualization": {
+                "timePreference": "global_time"
+              },
+              "formatting": {
+                "unit": "s",
+                "decimalPrecision": "2"
+              },
+              "thresholds": null
+            }
+          },
+          "queries": [
+            {
+              "kind": "scalar",
+              "spec": {
+                "name": "A",
+                "plugin": {
+                  "kind": "signoz/PromQLQuery",
+                  "spec": {
+                    "name": "A",
+                    "query": "min({__name__=\"process_uptime_seconds\",\"service.name\"=~\"$service\",\"service.instance.id\"=~\"$instance\",redis_mode=~\"$mode\",environment=~\"$environment\"})",
+                    "legend": "",
+                    "disabled": false
+                  }
+                }
+              }
+            }
+          ],
+          "links": []
+        }
+      },
+      "host-load": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "Host 1-minute load / visible CPUs",
+            "description": "Load average normalized by CPU count. 1.0 roughly means as many runnable entities as CPUs; not a CPU percentage."
+          },
+          "plugin": {
+            "kind": "signoz/TimeSeriesPanel",
+            "spec": {
+              "visualization": {
+                "timePreference": "global_time"
+              },
+              "formatting": {
+                "unit": "short",
+                "decimalPrecision": "2"
+              },
+              "thresholds": null,
+              "chartAppearance": {
+                "lineInterpolation": "linear",
+                "showPoints": false,
+                "lineStyle": "solid",
+                "fillMode": "none",
+                "spanGaps": {
+                  "fillOnlyBelow": false,
+                  "fillLessThan": ""
+                }
+              },
+              "axes": {
+                "softMin": 0,
+                "softMax": null,
+                "isLogScale": false
+              },
+              "legend": {
+                "position": "bottom",
+                "mode": "list",
+                "customColors": null
+              }
+            }
+          },
+          "queries": [
+            {
+              "kind": "time_series",
+              "spec": {
+                "name": "A",
+                "plugin": {
+                  "kind": "signoz/PromQLQuery",
+                  "spec": {
+                    "name": "A",
+                    "query": "{__name__=\"system_load_average_1m\",\"service.name\"=~\"$service\",\"service.instance.id\"=~\"$instance\",redis_mode=~\"$mode\",environment=~\"$environment\"} / {__name__=\"system_cpu_count\",\"service.name\"=~\"$service\",\"service.instance.id\"=~\"$instance\",redis_mode=~\"$mode\",environment=~\"$environment\"}",
+                    "legend": "{{service.name}}",
+                    "disabled": false
+                  }
+                }
+              }
+            }
+          ],
+          "links": []
+        }
+      },
+      "heap-bytes": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "Heap used / committed / max",
+            "description": "Committed is JVM-owned capacity, max is its configured ceiling; neither is process RSS. Undefined per-pool limits are excluded."
+          },
+          "plugin": {
+            "kind": "signoz/TimeSeriesPanel",
+            "spec": {
+              "visualization": {
+                "timePreference": "global_time"
+              },
+              "formatting": {
+                "unit": "bytes",
+                "decimalPrecision": "2"
+              },
+              "thresholds": null,
+              "chartAppearance": {
+                "lineInterpolation": "linear",
+                "showPoints": false,
+                "lineStyle": "solid",
+                "fillMode": "none",
+                "spanGaps": {
+                  "fillOnlyBelow": false,
+                  "fillLessThan": ""
+                }
+              },
+              "axes": {
+                "softMin": 0,
+                "softMax": null,
+                "isLogScale": false
+              },
+              "legend": {
+                "position": "bottom",
+                "mode": "list",
+                "customColors": null
+              }
+            }
+          },
+          "queries": [
+            {
+              "kind": "time_series",
+              "spec": {
+                "name": "A",
+                "plugin": {
+                  "kind": "signoz/PromQLQuery",
+                  "spec": {
+                    "name": "A",
+                    "query": "label_replace((sum by (\"service.name\",\"service.instance.id\",redis_mode) ({__name__=\"jvm_memory_used_bytes\",\"service.name\"=~\"$service\",\"service.instance.id\"=~\"$instance\",redis_mode=~\"$mode\",environment=~\"$environment\",area=\"heap\"})), \"view\", \"used\", \"__name__\", \".*\") or label_replace((sum by (\"service.name\",\"service.instance.id\",redis_mode) ({__name__=\"jvm_memory_committed_bytes\",\"service.name\"=~\"$service\",\"service.instance.id\"=~\"$instance\",redis_mode=~\"$mode\",environment=~\"$environment\",area=\"heap\"})), \"view\", \"committed\", \"__name__\", \".*\") or label_replace((sum by (\"service.name\",\"service.instance.id\",redis_mode) ({__name__=\"jvm_memory_max_bytes\",\"service.name\"=~\"$service\",\"service.instance.id\"=~\"$instance\",redis_mode=~\"$mode\",environment=~\"$environment\",area=\"heap\"} > 0)), \"view\", \"max\", \"__name__\", \".*\")",
+                    "legend": "{{view}} · {{service.name}}",
+                    "disabled": false
+                  }
+                }
+              }
+            }
+          ],
+          "links": []
+        }
+      },
+      "heap-pressure": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "Heap utilization & post-GC occupancy",
+            "description": "Persistent high after-GC occupancy is more useful than transient Eden spikes. Values have different denominators; labels distinguish them."
+          },
+          "plugin": {
+            "kind": "signoz/TimeSeriesPanel",
+            "spec": {
+              "visualization": {
+                "timePreference": "global_time"
+              },
+              "formatting": {
+                "unit": "percentunit",
+                "decimalPrecision": "2"
+              },
+              "thresholds": [
+                {
+                  "value": 0.8,
+                  "unit": "percentunit",
+                  "color": "#F59E0B",
+                  "label": "Investigate sustained occupancy"
+                }
+              ],
+              "chartAppearance": {
+                "lineInterpolation": "linear",
+                "showPoints": false,
+                "lineStyle": "solid",
+                "fillMode": "none",
+                "spanGaps": {
+                  "fillOnlyBelow": false,
+                  "fillLessThan": ""
+                }
+              },
+              "axes": {
+                "softMin": 0,
+                "softMax": null,
+                "isLogScale": false
+              },
+              "legend": {
+                "position": "bottom",
+                "mode": "list",
+                "customColors": null
+              }
+            }
+          },
+          "queries": [
+            {
+              "kind": "time_series",
+              "spec": {
+                "name": "A",
+                "plugin": {
+                  "kind": "signoz/PromQLQuery",
+                  "spec": {
+                    "name": "A",
+                    "query": "label_replace(((sum by (\"service.name\",\"service.instance.id\",redis_mode) ({__name__=\"jvm_memory_used_bytes\",\"service.name\"=~\"$service\",\"service.instance.id\"=~\"$instance\",redis_mode=~\"$mode\",environment=~\"$environment\",area=\"heap\"})) / (sum by (\"service.name\",\"service.instance.id\",redis_mode) ({__name__=\"jvm_memory_max_bytes\",\"service.name\"=~\"$service\",\"service.instance.id\"=~\"$instance\",redis_mode=~\"$mode\",environment=~\"$environment\",area=\"heap\"} > 0))), \"view\", \"heap used/max\", \"__name__\", \".*\") or label_replace(({__name__=\"jvm_memory_usage_after_gc\",\"service.name\"=~\"$service\",\"service.instance.id\"=~\"$instance\",redis_mode=~\"$mode\",environment=~\"$environment\"}), \"view\", \"after-GC long-lived occupancy\", \"__name__\", \".*\")",
+                    "legend": "{{view}} · {{service.name}}",
+                    "disabled": false
+                  }
+                }
+              }
+            }
+          ],
+          "links": []
+        }
+      },
+      "heap-pools": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "Heap pools · Old / Eden / Survivor",
+            "description": "Actual pool names come from the running collector. G1 exposes Old Gen, Eden, Survivor; other collectors have different pools."
+          },
+          "plugin": {
+            "kind": "signoz/TimeSeriesPanel",
+            "spec": {
+              "visualization": {
+                "timePreference": "global_time"
+              },
+              "formatting": {
+                "unit": "bytes",
+                "decimalPrecision": "2"
+              },
+              "thresholds": null,
+              "chartAppearance": {
+                "lineInterpolation": "linear",
+                "showPoints": false,
+                "lineStyle": "solid",
+                "fillMode": "none",
+                "spanGaps": {
+                  "fillOnlyBelow": false,
+                  "fillLessThan": ""
+                }
+              },
+              "axes": {
+                "softMin": 0,
+                "softMax": null,
+                "isLogScale": false
+              },
+              "legend": {
+                "position": "bottom",
+                "mode": "list",
+                "customColors": null
+              }
+            }
+          },
+          "queries": [
+            {
+              "kind": "time_series",
+              "spec": {
+                "name": "A",
+                "plugin": {
+                  "kind": "signoz/PromQLQuery",
+                  "spec": {
+                    "name": "A",
+                    "query": "{__name__=\"jvm_memory_used_bytes\",\"service.name\"=~\"$service\",\"service.instance.id\"=~\"$instance\",redis_mode=~\"$mode\",environment=~\"$environment\",area=\"heap\"}",
+                    "legend": "{{id}} · {{service.name}}",
+                    "disabled": false
+                  }
+                }
+              }
+            }
+          ],
+          "links": []
+        }
+      },
+      "nonheap": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "Non-heap pools · Metaspace / code / classes",
+            "description": "Metaspace, compressed class space and code cache. Not heap and not total process RSS."
+          },
+          "plugin": {
+            "kind": "signoz/TimeSeriesPanel",
+            "spec": {
+              "visualization": {
+                "timePreference": "global_time"
+              },
+              "formatting": {
+                "unit": "bytes",
+                "decimalPrecision": "2"
+              },
+              "thresholds": null,
+              "chartAppearance": {
+                "lineInterpolation": "linear",
+                "showPoints": false,
+                "lineStyle": "solid",
+                "fillMode": "none",
+                "spanGaps": {
+                  "fillOnlyBelow": false,
+                  "fillLessThan": ""
+                }
+              },
+              "axes": {
+                "softMin": 0,
+                "softMax": null,
+                "isLogScale": false
+              },
+              "legend": {
+                "position": "bottom",
+                "mode": "list",
+                "customColors": null
+              }
+            }
+          },
+          "queries": [
+            {
+              "kind": "time_series",
+              "spec": {
+                "name": "A",
+                "plugin": {
+                  "kind": "signoz/PromQLQuery",
+                  "spec": {
+                    "name": "A",
+                    "query": "{__name__=\"jvm_memory_used_bytes\",\"service.name\"=~\"$service\",\"service.instance.id\"=~\"$instance\",redis_mode=~\"$mode\",environment=~\"$environment\",area=\"nonheap\"}",
+                    "legend": "{{id}} · {{service.name}}",
+                    "disabled": false
+                  }
+                }
+              }
+            }
+          ],
+          "links": []
+        }
+      },
+      "buffers": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "Direct / mapped buffer memory",
+            "description": "JVM buffer-pool accounting; does not include all native allocations."
+          },
+          "plugin": {
+            "kind": "signoz/TimeSeriesPanel",
+            "spec": {
+              "visualization": {
+                "timePreference": "global_time"
+              },
+              "formatting": {
+                "unit": "bytes",
+                "decimalPrecision": "2"
+              },
+              "thresholds": null,
+              "chartAppearance": {
+                "lineInterpolation": "linear",
+                "showPoints": false,
+                "lineStyle": "solid",
+                "fillMode": "none",
+                "spanGaps": {
+                  "fillOnlyBelow": false,
+                  "fillLessThan": ""
+                }
+              },
+              "axes": {
+                "softMin": 0,
+                "softMax": null,
+                "isLogScale": false
+              },
+              "legend": {
+                "position": "bottom",
+                "mode": "list",
+                "customColors": null
+              }
+            }
+          },
+          "queries": [
+            {
+              "kind": "time_series",
+              "spec": {
+                "name": "A",
+                "plugin": {
+                  "kind": "signoz/PromQLQuery",
+                  "spec": {
+                    "name": "A",
+                    "query": "{__name__=\"jvm_buffer_memory_used_bytes\",\"service.name\"=~\"$service\",\"service.instance.id\"=~\"$instance\",redis_mode=~\"$mode\",environment=~\"$environment\"}",
+                    "legend": "{{id}} · {{service.name}}",
+                    "disabled": false
+                  }
+                }
+              }
+            }
+          ],
+          "links": []
+        }
+      },
+      "buffer-count": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "Direct / mapped buffer count",
+            "description": "Buffer counts should be read alongside bytes. Idle stable buffers are not a leak."
+          },
+          "plugin": {
+            "kind": "signoz/TimeSeriesPanel",
+            "spec": {
+              "visualization": {
+                "timePreference": "global_time"
+              },
+              "formatting": {
+                "unit": "short",
+                "decimalPrecision": "2"
+              },
+              "thresholds": null,
+              "chartAppearance": {
+                "lineInterpolation": "linear",
+                "showPoints": false,
+                "lineStyle": "solid",
+                "fillMode": "none",
+                "spanGaps": {
+                  "fillOnlyBelow": false,
+                  "fillLessThan": ""
+                }
+              },
+              "axes": {
+                "softMin": 0,
+                "softMax": null,
+                "isLogScale": false
+              },
+              "legend": {
+                "position": "bottom",
+                "mode": "list",
+                "customColors": null
+              }
+            }
+          },
+          "queries": [
+            {
+              "kind": "time_series",
+              "spec": {
+                "name": "A",
+                "plugin": {
+                  "kind": "signoz/PromQLQuery",
+                  "spec": {
+                    "name": "A",
+                    "query": "{__name__=\"jvm_buffer_count_buffers\",\"service.name\"=~\"$service\",\"service.instance.id\"=~\"$instance\",redis_mode=~\"$mode\",environment=~\"$environment\"}",
+                    "legend": "{{id}} · {{service.name}}",
+                    "disabled": false
+                  }
+                }
+              }
+            }
+          ],
+          "links": []
+        }
+      },
+      "process-rss": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "Process resident memory · RSS",
+            "description": "Darwin proc_pidinfo resident bytes, includes resident heap and native memory. Not equal to NMT committed. Native exporter follows MVC or WebFlux on port 8080 and labels process_pid."
+          },
+          "plugin": {
+            "kind": "signoz/TimeSeriesPanel",
+            "spec": {
+              "visualization": {
+                "timePreference": "global_time"
+              },
+              "formatting": {
+                "unit": "bytes",
+                "decimalPrecision": "2"
+              },
+              "thresholds": null,
+              "chartAppearance": {
+                "lineInterpolation": "linear",
+                "showPoints": false,
+                "lineStyle": "solid",
+                "fillMode": "none",
+                "spanGaps": {
+                  "fillOnlyBelow": false,
+                  "fillLessThan": ""
+                }
+              },
+              "axes": {
+                "softMin": 0,
+                "softMax": null,
+                "isLogScale": false
+              },
+              "legend": {
+                "position": "bottom",
+                "mode": "list",
+                "customColors": null
+              }
+            }
+          },
+          "queries": [
+            {
+              "kind": "time_series",
+              "spec": {
+                "name": "A",
+                "plugin": {
+                  "kind": "signoz/PromQLQuery",
+                  "spec": {
+                    "name": "A",
+                    "query": "{__name__=\"coregw_process_resident_memory_bytes\",\"service.name\"=~\"$service\",\"service.instance.id\"=~\"$instance\",redis_mode=~\"$mode\",environment=~\"$environment\",telemetry_source=\"native_os\"}",
+                    "legend": "{{service.name}} · pid {{process_pid}}",
+                    "disabled": false
+                  }
+                }
+              }
+            }
+          ],
+          "links": []
+        }
+      },
+      "context-switches": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "Process context switches / second",
+            "description": "Darwin process context switches, all native threads; not only Tomcat. Does not measure time spent switching. Counter is 32-bit on macOS and can wrap; rate handles resets."
+          },
+          "plugin": {
+            "kind": "signoz/TimeSeriesPanel",
+            "spec": {
+              "visualization": {
+                "timePreference": "global_time"
+              },
+              "formatting": {
+                "unit": "ops",
+                "decimalPrecision": "2"
+              },
+              "thresholds": null,
+              "chartAppearance": {
+                "lineInterpolation": "linear",
+                "showPoints": false,
+                "lineStyle": "solid",
+                "fillMode": "none",
+                "spanGaps": {
+                  "fillOnlyBelow": false,
+                  "fillLessThan": ""
+                }
+              },
+              "axes": {
+                "softMin": 0,
+                "softMax": null,
+                "isLogScale": false
+              },
+              "legend": {
+                "position": "bottom",
+                "mode": "list",
+                "customColors": null
+              }
+            }
+          },
+          "queries": [
+            {
+              "kind": "time_series",
+              "spec": {
+                "name": "A",
+                "plugin": {
+                  "kind": "signoz/PromQLQuery",
+                  "spec": {
+                    "name": "A",
+                    "query": "rate({__name__=\"coregw_process_context_switches_total\",\"service.name\"=~\"$service\",\"service.instance.id\"=~\"$instance\",redis_mode=~\"$mode\",environment=~\"$environment\",telemetry_source=\"native_os\"}[1m])",
+                    "legend": "{{service.name}} · pid {{process_pid}}",
+                    "disabled": false
+                  }
+                }
+              }
+            }
+          ],
+          "links": []
+        }
+      },
+      "native-stacks": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "Native thread stacks · reserved / committed",
+            "description": "Requires JVM -XX:NativeMemoryTracking=summary at startup. Reserved is address space, committed is JVM accounting, neither is RSS. NMT sampled every 30s. Includes JVM native threads, not only Tomcat; not virtual-thread heap stacks."
+          },
+          "plugin": {
+            "kind": "signoz/TimeSeriesPanel",
+            "spec": {
+              "visualization": {
+                "timePreference": "global_time"
+              },
+              "formatting": {
+                "unit": "bytes",
+                "decimalPrecision": "2"
+              },
+              "thresholds": null,
+              "chartAppearance": {
+                "lineInterpolation": "linear",
+                "showPoints": false,
+                "lineStyle": "solid",
+                "fillMode": "none",
+                "spanGaps": {
+                  "fillOnlyBelow": false,
+                  "fillLessThan": ""
+                }
+              },
+              "axes": {
+                "softMin": 0,
+                "softMax": null,
+                "isLogScale": false
+              },
+              "legend": {
+                "position": "bottom",
+                "mode": "list",
+                "customColors": null
+              }
+            }
+          },
+          "queries": [
+            {
+              "kind": "time_series",
+              "spec": {
+                "name": "A",
+                "plugin": {
+                  "kind": "signoz/PromQLQuery",
+                  "spec": {
+                    "name": "A",
+                    "query": "label_replace(({__name__=\"coregw_nmt_stack_reserved_bytes\",\"service.name\"=~\"$service\",\"service.instance.id\"=~\"$instance\",redis_mode=~\"$mode\",environment=~\"$environment\",telemetry_source=\"native_os\"}), \"view\", \"reserved\", \"__name__\", \".*\") or label_replace(({__name__=\"coregw_nmt_stack_committed_bytes\",\"service.name\"=~\"$service\",\"service.instance.id\"=~\"$instance\",redis_mode=~\"$mode\",environment=~\"$environment\",telemetry_source=\"native_os\"}), \"view\", \"committed\", \"__name__\", \".*\")",
+                    "legend": "{{service.name}} · {{view}} · pid {{process_pid}}",
+                    "disabled": false
+                  }
+                }
+              }
+            }
+          ],
+          "links": []
+        }
+      },
+      "native-threads-memory": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "NMT Thread category · reserved / committed",
+            "description": "NMT Thread category includes stacks and thread bookkeeping. It is a superset of stack bytes: do not add them."
+          },
+          "plugin": {
+            "kind": "signoz/TimeSeriesPanel",
+            "spec": {
+              "visualization": {
+                "timePreference": "global_time"
+              },
+              "formatting": {
+                "unit": "bytes",
+                "decimalPrecision": "2"
+              },
+              "thresholds": null,
+              "chartAppearance": {
+                "lineInterpolation": "linear",
+                "showPoints": false,
+                "lineStyle": "solid",
+                "fillMode": "none",
+                "spanGaps": {
+                  "fillOnlyBelow": false,
+                  "fillLessThan": ""
+                }
+              },
+              "axes": {
+                "softMin": 0,
+                "softMax": null,
+                "isLogScale": false
+              },
+              "legend": {
+                "position": "bottom",
+                "mode": "list",
+                "customColors": null
+              }
+            }
+          },
+          "queries": [
+            {
+              "kind": "time_series",
+              "spec": {
+                "name": "A",
+                "plugin": {
+                  "kind": "signoz/PromQLQuery",
+                  "spec": {
+                    "name": "A",
+                    "query": "label_replace(({__name__=\"coregw_nmt_thread_reserved_bytes\",\"service.name\"=~\"$service\",\"service.instance.id\"=~\"$instance\",redis_mode=~\"$mode\",environment=~\"$environment\",telemetry_source=\"native_os\"}), \"view\", \"reserved\", \"__name__\", \".*\") or label_replace(({__name__=\"coregw_nmt_thread_committed_bytes\",\"service.name\"=~\"$service\",\"service.instance.id\"=~\"$instance\",redis_mode=~\"$mode\",environment=~\"$environment\",telemetry_source=\"native_os\"}), \"view\", \"committed\", \"__name__\", \".*\")",
+                    "legend": "{{service.name}} · {{view}} · pid {{process_pid}}",
+                    "disabled": false
+                  }
+                }
+              }
+            }
+          ],
+          "links": []
+        }
+      },
+      "native-health": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "Native metrics · target / NMT available",
+            "description": "Target=1 means matching MVC/WebFlux JVM discovered; NMT=0 means disabled or last sample failed, not zero native memory. Exporter must be running on host port 9257."
+          },
+          "plugin": {
+            "kind": "signoz/TimeSeriesPanel",
+            "spec": {
+              "visualization": {
+                "timePreference": "global_time"
+              },
+              "formatting": {
+                "unit": "short",
+                "decimalPrecision": "2"
+              },
+              "thresholds": null,
+              "chartAppearance": {
+                "lineInterpolation": "linear",
+                "showPoints": false,
+                "lineStyle": "solid",
+                "fillMode": "none",
+                "spanGaps": {
+                  "fillOnlyBelow": false,
+                  "fillLessThan": ""
+                }
+              },
+              "axes": {
+                "softMin": 0,
+                "softMax": null,
+                "isLogScale": false
+              },
+              "legend": {
+                "position": "bottom",
+                "mode": "list",
+                "customColors": null
+              }
+            }
+          },
+          "queries": [
+            {
+              "kind": "time_series",
+              "spec": {
+                "name": "A",
+                "plugin": {
+                  "kind": "signoz/PromQLQuery",
+                  "spec": {
+                    "name": "A",
+                    "query": "label_replace(({__name__=\"coregw_native_target_up\",\"service.name\"=~\"$service\",\"service.instance.id\"=~\"$instance\",redis_mode=~\"$mode\",environment=~\"$environment\",telemetry_source=\"native_os\"}), \"view\", \"target available\", \"__name__\", \".*\") or label_replace(({__name__=\"coregw_nmt_available\",\"service.name\"=~\"$service\",\"service.instance.id\"=~\"$instance\",redis_mode=~\"$mode\",environment=~\"$environment\",telemetry_source=\"native_os\"}), \"view\", \"NMT available\", \"__name__\", \".*\")",
+                    "legend": "{{service.name}} · {{view}} · pid {{process_pid}}",
+                    "disabled": false
+                  }
+                }
+              }
+            }
+          ],
+          "links": []
+        }
+      },
+      "nmt-age": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "Native memory sample age",
+            "description": "NMT polls every 30s; absent when unavailable. Native exporter does not invoke jcmd on the HTTP scrape thread."
+          },
+          "plugin": {
+            "kind": "signoz/TimeSeriesPanel",
+            "spec": {
+              "visualization": {
+                "timePreference": "global_time"
+              },
+              "formatting": {
+                "unit": "s",
+                "decimalPrecision": "2"
+              },
+              "thresholds": null,
+              "chartAppearance": {
+                "lineInterpolation": "linear",
+                "showPoints": false,
+                "lineStyle": "solid",
+                "fillMode": "none",
+                "spanGaps": {
+                  "fillOnlyBelow": false,
+                  "fillLessThan": ""
+                }
+              },
+              "axes": {
+                "softMin": 0,
+                "softMax": null,
+                "isLogScale": false
+              },
+              "legend": {
+                "position": "bottom",
+                "mode": "list",
+                "customColors": null
+              }
+            }
+          },
+          "queries": [
+            {
+              "kind": "time_series",
+              "spec": {
+                "name": "A",
+                "plugin": {
+                  "kind": "signoz/PromQLQuery",
+                  "spec": {
+                    "name": "A",
+                    "query": "time() - {__name__=\"coregw_nmt_sample_timestamp_seconds\",\"service.name\"=~\"$service\",\"service.instance.id\"=~\"$instance\",redis_mode=~\"$mode\",environment=~\"$environment\",telemetry_source=\"native_os\"}",
+                    "legend": "{{service.name}} · pid {{process_pid}}",
+                    "disabled": false
+                  }
+                }
+              }
+            }
+          ],
+          "links": []
+        }
+      },
+      "gc-allocation": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "Heap allocation / promotion rate",
+            "description": "Counters update around GC. Short intervals can look bursty; use the same rate window for both benchmark modes."
+          },
+          "plugin": {
+            "kind": "signoz/TimeSeriesPanel",
+            "spec": {
+              "visualization": {
+                "timePreference": "global_time"
+              },
+              "formatting": {
+                "unit": "Bps",
+                "decimalPrecision": "2"
+              },
+              "thresholds": null,
+              "chartAppearance": {
+                "lineInterpolation": "linear",
+                "showPoints": false,
+                "lineStyle": "solid",
+                "fillMode": "none",
+                "spanGaps": {
+                  "fillOnlyBelow": false,
+                  "fillLessThan": ""
+                }
+              },
+              "axes": {
+                "softMin": 0,
+                "softMax": null,
+                "isLogScale": false
+              },
+              "legend": {
+                "position": "bottom",
+                "mode": "list",
+                "customColors": null
+              }
+            }
+          },
+          "queries": [
+            {
+              "kind": "time_series",
+              "spec": {
+                "name": "A",
+                "plugin": {
+                  "kind": "signoz/PromQLQuery",
+                  "spec": {
+                    "name": "A",
+                    "query": "label_replace((sum by (\"service.name\",\"service.instance.id\",redis_mode) (rate({__name__=\"jvm_gc_memory_allocated_bytes_total\",\"service.name\"=~\"$service\",\"service.instance.id\"=~\"$instance\",redis_mode=~\"$mode\",environment=~\"$environment\"}[1m]))), \"view\", \"allocated\", \"__name__\", \".*\") or label_replace((sum by (\"service.name\",\"service.instance.id\",redis_mode) (rate({__name__=\"jvm_gc_memory_promoted_bytes_total\",\"service.name\"=~\"$service\",\"service.instance.id\"=~\"$instance\",redis_mode=~\"$mode\",environment=~\"$environment\"}[1m]))), \"view\", \"promoted\", \"__name__\", \".*\")",
+                    "legend": "{{view}} · {{service.name}}",
+                    "disabled": false
+                  }
+                }
+              }
+            }
+          ],
+          "links": []
+        }
+      },
+      "gc-pause-cost": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "GC pause fraction",
+            "description": "Total pause time per second; shows impact rather than only event duration. Does not represent concurrent GC CPU."
+          },
+          "plugin": {
+            "kind": "signoz/TimeSeriesPanel",
+            "spec": {
+              "visualization": {
+                "timePreference": "global_time"
+              },
+              "formatting": {
+                "unit": "percentunit",
+                "decimalPrecision": "2"
+              },
+              "thresholds": [
+                {
+                  "value": 0.05,
+                  "unit": "percentunit",
+                  "color": "#F59E0B",
+                  "label": "Example: sustained 5% pause time"
+                }
+              ],
+              "chartAppearance": {
+                "lineInterpolation": "linear",
+                "showPoints": false,
+                "lineStyle": "solid",
+                "fillMode": "none",
+                "spanGaps": {
+                  "fillOnlyBelow": false,
+                  "fillLessThan": ""
+                }
+              },
+              "axes": {
+                "softMin": 0,
+                "softMax": null,
+                "isLogScale": false
+              },
+              "legend": {
+                "position": "bottom",
+                "mode": "list",
+                "customColors": null
+              }
+            }
+          },
+          "queries": [
+            {
+              "kind": "time_series",
+              "spec": {
+                "name": "A",
+                "plugin": {
+                  "kind": "signoz/PromQLQuery",
+                  "spec": {
+                    "name": "A",
+                    "query": "sum by (\"service.name\",\"service.instance.id\",redis_mode) (rate({__name__=\"jvm_gc_pause_seconds.sum\",\"service.name\"=~\"$service\",\"service.instance.id\"=~\"$instance\",redis_mode=~\"$mode\",environment=~\"$environment\"}[1m]))",
+                    "legend": "{{service.name}}",
+                    "disabled": false
+                  }
+                }
+              }
+            }
+          ],
+          "links": []
+        }
+      },
+      "gc-frequency": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "GC events by collector / cause",
+            "description": "Collection events/s grouped by JVM GC labels. Major/minor interpretation depends on the collector."
+          },
+          "plugin": {
+            "kind": "signoz/TimeSeriesPanel",
+            "spec": {
+              "visualization": {
+                "timePreference": "global_time"
+              },
+              "formatting": {
+                "unit": "ops",
+                "decimalPrecision": "2"
+              },
+              "thresholds": null,
+              "chartAppearance": {
+                "lineInterpolation": "linear",
+                "showPoints": false,
+                "lineStyle": "solid",
+                "fillMode": "none",
+                "spanGaps": {
+                  "fillOnlyBelow": false,
+                  "fillLessThan": ""
+                }
+              },
+              "axes": {
+                "softMin": 0,
+                "softMax": null,
+                "isLogScale": false
+              },
+              "legend": {
+                "position": "bottom",
+                "mode": "list",
+                "customColors": null
+              }
+            }
+          },
+          "queries": [
+            {
+              "kind": "time_series",
+              "spec": {
+                "name": "A",
+                "plugin": {
+                  "kind": "signoz/PromQLQuery",
+                  "spec": {
+                    "name": "A",
+                    "query": "sum by (\"service.name\",\"service.instance.id\",redis_mode,gc,cause,action) (rate({__name__=\"jvm_gc_pause_seconds.count\",\"service.name\"=~\"$service\",\"service.instance.id\"=~\"$instance\",redis_mode=~\"$mode\",environment=~\"$environment\"}[1m]))",
+                    "legend": "{{gc}} · {{cause}} · {{service.name}}",
+                    "disabled": false
+                  }
+                }
+              }
+            }
+          ],
+          "links": []
+        }
+      },
+      "gc-duration": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "GC pauses · mean / p90 / p99",
+            "description": "GC histogram requires app restart after jvm.gc.pause histogram is enabled. Until then only mean exists. No GC in the chosen window means no duration, not 0 ms."
+          },
+          "plugin": {
+            "kind": "signoz/TimeSeriesPanel",
+            "spec": {
+              "visualization": {
+                "timePreference": "global_time"
+              },
+              "formatting": {
+                "unit": "s",
+                "decimalPrecision": "2"
+              },
+              "thresholds": null,
+              "chartAppearance": {
+                "lineInterpolation": "linear",
+                "showPoints": false,
+                "lineStyle": "solid",
+                "fillMode": "none",
+                "spanGaps": {
+                  "fillOnlyBelow": false,
+                  "fillLessThan": ""
+                }
+              },
+              "axes": {
+                "softMin": 0,
+                "softMax": null,
+                "isLogScale": false
+              },
+              "legend": {
+                "position": "bottom",
+                "mode": "list",
+                "customColors": null
+              }
+            }
+          },
+          "queries": [
+            {
+              "kind": "time_series",
+              "spec": {
+                "name": "A",
+                "plugin": {
+                  "kind": "signoz/PromQLQuery",
+                  "spec": {
+                    "name": "A",
+                    "query": "label_replace((sum by (\"service.name\",\"service.instance.id\",redis_mode,gc) (rate({__name__=\"jvm_gc_pause_seconds.sum\",\"service.name\"=~\"$service\",\"service.instance.id\"=~\"$instance\",redis_mode=~\"$mode\",environment=~\"$environment\"}[1m])) / sum by (\"service.name\",\"service.instance.id\",redis_mode,gc) (rate({__name__=\"jvm_gc_pause_seconds.count\",\"service.name\"=~\"$service\",\"service.instance.id\"=~\"$instance\",redis_mode=~\"$mode\",environment=~\"$environment\"}[1m]))), \"view\", \"mean\", \"__name__\", \".*\") or label_replace((histogram_quantile(.9, sum by (le,\"service.name\",\"service.instance.id\",redis_mode,gc) (rate({__name__=\"jvm_gc_pause_seconds.bucket\",\"service.name\"=~\"$service\",\"service.instance.id\"=~\"$instance\",redis_mode=~\"$mode\",environment=~\"$environment\"}[1m])))), \"view\", \"p90\", \"__name__\", \".*\") or label_replace((histogram_quantile(.99, sum by (le,\"service.name\",\"service.instance.id\",redis_mode,gc) (rate({__name__=\"jvm_gc_pause_seconds.bucket\",\"service.name\"=~\"$service\",\"service.instance.id\"=~\"$instance\",redis_mode=~\"$mode\",environment=~\"$environment\"}[1m])))), \"view\", \"p99\", \"__name__\", \".*\")",
+                    "legend": "{{view}} · {{gc}} · {{service.name}}",
+                    "disabled": false
+                  }
+                }
+              }
+            }
+          ],
+          "links": []
+        }
+      },
+      "threads-states": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "JVM platform thread states",
+            "description": "Runnable, waiting, timed-waiting, blocked, new, terminated. JVM MXBean thread metrics do not enumerate all Java virtual threads."
+          },
+          "plugin": {
+            "kind": "signoz/TimeSeriesPanel",
+            "spec": {
+              "visualization": {
+                "timePreference": "global_time"
+              },
+              "formatting": {
+                "unit": "short",
+                "decimalPrecision": "2"
+              },
+              "thresholds": null,
+              "chartAppearance": {
+                "lineInterpolation": "linear",
+                "showPoints": false,
+                "lineStyle": "solid",
+                "fillMode": "none",
+                "spanGaps": {
+                  "fillOnlyBelow": false,
+                  "fillLessThan": ""
+                }
+              },
+              "axes": {
+                "softMin": 0,
+                "softMax": null,
+                "isLogScale": false
+              },
+              "legend": {
+                "position": "bottom",
+                "mode": "list",
+                "customColors": null
+              }
+            }
+          },
+          "queries": [
+            {
+              "kind": "time_series",
+              "spec": {
+                "name": "A",
+                "plugin": {
+                  "kind": "signoz/PromQLQuery",
+                  "spec": {
+                    "name": "A",
+                    "query": "sum by (\"service.name\",\"service.instance.id\",redis_mode,state) ({__name__=\"jvm_threads_states_threads\",\"service.name\"=~\"$service\",\"service.instance.id\"=~\"$instance\",redis_mode=~\"$mode\",environment=~\"$environment\"})",
+                    "legend": "{{state}} · {{service.name}}",
+                    "disabled": false
+                  }
+                }
+              }
+            }
+          ],
+          "links": []
+        }
+      },
+      "threads-live": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "Platform threads · live / daemon / peak",
+            "description": "Live includes daemon and non-daemon threads; daemon is a subset, never add the two. Peak is since process start/reset."
+          },
+          "plugin": {
+            "kind": "signoz/TimeSeriesPanel",
+            "spec": {
+              "visualization": {
+                "timePreference": "global_time"
+              },
+              "formatting": {
+                "unit": "short",
+                "decimalPrecision": "2"
+              },
+              "thresholds": null,
+              "chartAppearance": {
+                "lineInterpolation": "linear",
+                "showPoints": false,
+                "lineStyle": "solid",
+                "fillMode": "none",
+                "spanGaps": {
+                  "fillOnlyBelow": false,
+                  "fillLessThan": ""
+                }
+              },
+              "axes": {
+                "softMin": 0,
+                "softMax": null,
+                "isLogScale": false
+              },
+              "legend": {
+                "position": "bottom",
+                "mode": "list",
+                "customColors": null
+              }
+            }
+          },
+          "queries": [
+            {
+              "kind": "time_series",
+              "spec": {
+                "name": "A",
+                "plugin": {
+                  "kind": "signoz/PromQLQuery",
+                  "spec": {
+                    "name": "A",
+                    "query": "label_replace(({__name__=\"jvm_threads_live_threads\",\"service.name\"=~\"$service\",\"service.instance.id\"=~\"$instance\",redis_mode=~\"$mode\",environment=~\"$environment\"}), \"view\", \"live\", \"__name__\", \".*\") or label_replace(({__name__=\"jvm_threads_daemon_threads\",\"service.name\"=~\"$service\",\"service.instance.id\"=~\"$instance\",redis_mode=~\"$mode\",environment=~\"$environment\"}), \"view\", \"daemon\", \"__name__\", \".*\") or label_replace(({__name__=\"jvm_threads_peak_threads\",\"service.name\"=~\"$service\",\"service.instance.id\"=~\"$instance\",redis_mode=~\"$mode\",environment=~\"$environment\"}), \"view\", \"peak\", \"__name__\", \".*\")",
+                    "legend": "{{view}} · {{service.name}}",
+                    "disabled": false
+                  }
+                }
+              }
+            }
+          ],
+          "links": []
+        }
+      },
+      "classes": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "Classes currently loaded",
+            "description": "Current class count; compare against Metaspace trend. This is not cumulative classes ever loaded."
+          },
+          "plugin": {
+            "kind": "signoz/TimeSeriesPanel",
+            "spec": {
+              "visualization": {
+                "timePreference": "global_time"
+              },
+              "formatting": {
+                "unit": "short",
+                "decimalPrecision": "2"
+              },
+              "thresholds": null,
+              "chartAppearance": {
+                "lineInterpolation": "linear",
+                "showPoints": false,
+                "lineStyle": "solid",
+                "fillMode": "none",
+                "spanGaps": {
+                  "fillOnlyBelow": false,
+                  "fillLessThan": ""
+                }
+              },
+              "axes": {
+                "softMin": 0,
+                "softMax": null,
+                "isLogScale": false
+              },
+              "legend": {
+                "position": "bottom",
+                "mode": "list",
+                "customColors": null
+              }
+            }
+          },
+          "queries": [
+            {
+              "kind": "time_series",
+              "spec": {
+                "name": "A",
+                "plugin": {
+                  "kind": "signoz/PromQLQuery",
+                  "spec": {
+                    "name": "A",
+                    "query": "{__name__=\"jvm_classes_loaded_classes\",\"service.name\"=~\"$service\",\"service.instance.id\"=~\"$instance\",redis_mode=~\"$mode\",environment=~\"$environment\"}",
+                    "legend": "{{service.name}}",
+                    "disabled": false
+                  }
+                }
+              }
+            }
+          ],
+          "links": []
+        }
+      },
+      "class-churn": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "Class loading / unloading rate",
+            "description": "Counts/s, useful for class-loader churn. Interpret startup separately from steady state."
+          },
+          "plugin": {
+            "kind": "signoz/TimeSeriesPanel",
+            "spec": {
+              "visualization": {
+                "timePreference": "global_time"
+              },
+              "formatting": {
+                "unit": "ops",
+                "decimalPrecision": "2"
+              },
+              "thresholds": null,
+              "chartAppearance": {
+                "lineInterpolation": "linear",
+                "showPoints": false,
+                "lineStyle": "solid",
+                "fillMode": "none",
+                "spanGaps": {
+                  "fillOnlyBelow": false,
+                  "fillLessThan": ""
+                }
+              },
+              "axes": {
+                "softMin": 0,
+                "softMax": null,
+                "isLogScale": false
+              },
+              "legend": {
+                "position": "bottom",
+                "mode": "list",
+                "customColors": null
+              }
+            }
+          },
+          "queries": [
+            {
+              "kind": "time_series",
+              "spec": {
+                "name": "A",
+                "plugin": {
+                  "kind": "signoz/PromQLQuery",
+                  "spec": {
+                    "name": "A",
+                    "query": "label_replace((rate({__name__=\"jvm_classes_loaded_count_classes_total\",\"service.name\"=~\"$service\",\"service.instance.id\"=~\"$instance\",redis_mode=~\"$mode\",environment=~\"$environment\"}[1m])), \"view\", \"loaded\", \"__name__\", \".*\") or label_replace((rate({__name__=\"jvm_classes_unloaded_classes_total\",\"service.name\"=~\"$service\",\"service.instance.id\"=~\"$instance\",redis_mode=~\"$mode\",environment=~\"$environment\"}[1m])), \"view\", \"unloaded\", \"__name__\", \".*\")",
+                    "legend": "{{view}} · {{service.name}}",
+                    "disabled": false
+                  }
+                }
+              }
+            }
+          ],
+          "links": []
+        }
+      },
+      "fds": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "File descriptors · open / limit",
+            "description": "Unix descriptor accounting. Includes sockets and files; it is not the Redis connection count."
+          },
+          "plugin": {
+            "kind": "signoz/TimeSeriesPanel",
+            "spec": {
+              "visualization": {
+                "timePreference": "global_time"
+              },
+              "formatting": {
+                "unit": "short",
+                "decimalPrecision": "2"
+              },
+              "thresholds": null,
+              "chartAppearance": {
+                "lineInterpolation": "linear",
+                "showPoints": false,
+                "lineStyle": "solid",
+                "fillMode": "none",
+                "spanGaps": {
+                  "fillOnlyBelow": false,
+                  "fillLessThan": ""
+                }
+              },
+              "axes": {
+                "softMin": 0,
+                "softMax": null,
+                "isLogScale": false
+              },
+              "legend": {
+                "position": "bottom",
+                "mode": "list",
+                "customColors": null
+              }
+            }
+          },
+          "queries": [
+            {
+              "kind": "time_series",
+              "spec": {
+                "name": "A",
+                "plugin": {
+                  "kind": "signoz/PromQLQuery",
+                  "spec": {
+                    "name": "A",
+                    "query": "label_replace(({__name__=\"process_files_open_files\",\"service.name\"=~\"$service\",\"service.instance.id\"=~\"$instance\",redis_mode=~\"$mode\",environment=~\"$environment\"}), \"view\", \"open\", \"__name__\", \".*\") or label_replace(({__name__=\"process_files_max_files\",\"service.name\"=~\"$service\",\"service.instance.id\"=~\"$instance\",redis_mode=~\"$mode\",environment=~\"$environment\"}), \"view\", \"limit\", \"__name__\", \".*\")",
+                    "legend": "{{view}} · {{service.name}}",
+                    "disabled": false
+                  }
+                }
+              }
+            }
+          ],
+          "links": []
+        }
+      },
+      "jit": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "JIT compilation time per second",
+            "description": "Compiler milliseconds/s converted to seconds/s; helps identify JVM warm-up activity. Not CPU core utilization."
+          },
+          "plugin": {
+            "kind": "signoz/TimeSeriesPanel",
+            "spec": {
+              "visualization": {
+                "timePreference": "global_time"
+              },
+              "formatting": {
+                "unit": "short",
+                "decimalPrecision": "2"
+              },
+              "thresholds": null,
+              "chartAppearance": {
+                "lineInterpolation": "linear",
+                "showPoints": false,
+                "lineStyle": "solid",
+                "fillMode": "none",
+                "spanGaps": {
+                  "fillOnlyBelow": false,
+                  "fillLessThan": ""
+                }
+              },
+              "axes": {
+                "softMin": 0,
+                "softMax": null,
+                "isLogScale": false
+              },
+              "legend": {
+                "position": "bottom",
+                "mode": "list",
+                "customColors": null
+              }
+            }
+          },
+          "queries": [
+            {
+              "kind": "time_series",
+              "spec": {
+                "name": "A",
+                "plugin": {
+                  "kind": "signoz/PromQLQuery",
+                  "spec": {
+                    "name": "A",
+                    "query": "rate({__name__=\"jvm_compilation_time_ms_total\",\"service.name\"=~\"$service\",\"service.instance.id\"=~\"$instance\",redis_mode=~\"$mode\",environment=~\"$environment\"}[1m]) / 1000",
+                    "legend": "{{service.name}}",
+                    "disabled": false
+                  }
+                }
+              }
+            }
+          ],
+          "links": []
+        }
+      }
+    },
+    "layouts": [
+      {
+        "kind": "Grid",
+        "spec": {
+          "display": {
+            "title": "01 · Overview",
+            "collapse": {
+              "open": true
+            }
+          },
+          "items": [
+            {
+              "x": 0,
+              "y": 0,
+              "width": 3,
+              "height": 3,
+              "content": {
+                "$ref": "#/spec/panels/status"
+              }
+            },
+            {
+              "x": 3,
+              "y": 0,
+              "width": 3,
+              "height": 3,
+              "content": {
+                "$ref": "#/spec/panels/sample-age"
+              }
+            },
+            {
+              "x": 6,
+              "y": 0,
+              "width": 3,
+              "height": 3,
+              "content": {
+                "$ref": "#/spec/panels/instance-count"
+              }
+            },
+            {
+              "x": 9,
+              "y": 0,
+              "width": 3,
+              "height": 3,
+              "content": {
+                "$ref": "#/spec/panels/cpu-now"
+              }
+            },
+            {
+              "x": 0,
+              "y": 3,
+              "width": 3,
+              "height": 3,
+              "content": {
+                "$ref": "#/spec/panels/heap-now"
+              }
+            },
+            {
+              "x": 3,
+              "y": 3,
+              "width": 3,
+              "height": 3,
+              "content": {
+                "$ref": "#/spec/panels/gc-now"
+              }
+            },
+            {
+              "x": 6,
+              "y": 3,
+              "width": 3,
+              "height": 3,
+              "content": {
+                "$ref": "#/spec/panels/rps-now"
+              }
+            },
+            {
+              "x": 9,
+              "y": 3,
+              "width": 3,
+              "height": 3,
+              "content": {
+                "$ref": "#/spec/panels/p99-now"
+              }
+            }
+          ]
+        }
+      },
+      {
+        "kind": "Grid",
+        "spec": {
+          "display": {
+            "title": "02 · HTTP workload — latency, throughput, errors, endpoints",
+            "collapse": {
+              "open": true
+            }
+          },
+          "items": [
+            {
+              "x": 0,
+              "y": 0,
+              "width": 6,
+              "height": 5,
+              "content": {
+                "$ref": "#/spec/panels/http-rate"
+              }
+            },
+            {
+              "x": 6,
+              "y": 0,
+              "width": 6,
+              "height": 5,
+              "content": {
+                "$ref": "#/spec/panels/http-errors"
+              }
+            },
+            {
+              "x": 0,
+              "y": 5,
+              "width": 6,
+              "height": 5,
+              "content": {
+                "$ref": "#/spec/panels/http-latency"
+              }
+            },
+            {
+              "x": 6,
+              "y": 5,
+              "width": 6,
+              "height": 5,
+              "content": {
+                "$ref": "#/spec/panels/http-endpoints"
+              }
+            }
+          ]
+        }
+      },
+      {
+        "kind": "Grid",
+        "spec": {
+          "display": {
+            "title": "Tomcat · request worker capacity",
+            "collapse": {
+              "open": true
+            }
+          },
+          "items": [
+            {
+              "x": 0,
+              "y": 0,
+              "width": 6,
+              "height": 5,
+              "content": {
+                "$ref": "#/spec/panels/tomcat-threads"
+              }
+            },
+            {
+              "x": 6,
+              "y": 0,
+              "width": 6,
+              "height": 5,
+              "content": {
+                "$ref": "#/spec/panels/tomcat-utilization"
+              }
+            },
+            {
+              "x": 0,
+              "y": 5,
+              "width": 6,
+              "height": 5,
+              "content": {
+                "$ref": "#/spec/panels/tomcat-connections"
+              }
+            }
+          ]
+        }
+      },
+      {
+        "kind": "Grid",
+        "spec": {
+          "display": {
+            "title": "WebFlux · core connection pool",
+            "collapse": {
+              "open": true
+            }
+          },
+          "items": [
+            {
+              "x": 0,
+              "y": 0,
+              "width": 6,
+              "height": 5,
+              "content": {
+                "$ref": "#/spec/panels/netty-pool"
+              }
+            },
+            {
+              "x": 6,
+              "y": 0,
+              "width": 6,
+              "height": 5,
+              "content": {
+                "$ref": "#/spec/panels/netty-pending"
+              }
+            }
+          ]
+        }
+      },
+      {
+        "kind": "Grid",
+        "spec": {
+          "display": {
+            "title": "03 · JVM CPU & process lifecycle",
+            "collapse": {
+              "open": true
+            }
+          },
+          "items": [
+            {
+              "x": 0,
+              "y": 0,
+              "width": 6,
+              "height": 5,
+              "content": {
+                "$ref": "#/spec/panels/cpu-history"
+              }
+            },
+            {
+              "x": 6,
+              "y": 0,
+              "width": 6,
+              "height": 5,
+              "content": {
+                "$ref": "#/spec/panels/cpu-cores"
+              }
+            },
+            {
+              "x": 0,
+              "y": 5,
+              "width": 3,
+              "height": 3,
+              "content": {
+                "$ref": "#/spec/panels/cpu-count"
+              }
+            },
+            {
+              "x": 3,
+              "y": 5,
+              "width": 3,
+              "height": 3,
+              "content": {
+                "$ref": "#/spec/panels/uptime"
+              }
+            },
+            {
+              "x": 6,
+              "y": 5,
+              "width": 6,
+              "height": 5,
+              "content": {
+                "$ref": "#/spec/panels/host-load"
+              }
+            }
+          ]
+        }
+      },
+      {
+        "kind": "Grid",
+        "spec": {
+          "display": {
+            "title": "04 · JVM memory — heap, non-heap, pools & off-heap buffers",
+            "collapse": {
+              "open": true
+            }
+          },
+          "items": [
+            {
+              "x": 0,
+              "y": 0,
+              "width": 6,
+              "height": 5,
+              "content": {
+                "$ref": "#/spec/panels/heap-bytes"
+              }
+            },
+            {
+              "x": 6,
+              "y": 0,
+              "width": 6,
+              "height": 5,
+              "content": {
+                "$ref": "#/spec/panels/heap-pressure"
+              }
+            },
+            {
+              "x": 0,
+              "y": 5,
+              "width": 6,
+              "height": 5,
+              "content": {
+                "$ref": "#/spec/panels/heap-pools"
+              }
+            },
+            {
+              "x": 6,
+              "y": 5,
+              "width": 6,
+              "height": 5,
+              "content": {
+                "$ref": "#/spec/panels/nonheap"
+              }
+            },
+            {
+              "x": 0,
+              "y": 10,
+              "width": 6,
+              "height": 5,
+              "content": {
+                "$ref": "#/spec/panels/buffers"
+              }
+            },
+            {
+              "x": 6,
+              "y": 10,
+              "width": 6,
+              "height": 5,
+              "content": {
+                "$ref": "#/spec/panels/buffer-count"
+              }
+            }
+          ]
+        }
+      },
+      {
+        "kind": "Grid",
+        "spec": {
+          "display": {
+            "title": "Native process memory & scheduling · macOS",
+            "collapse": {
+              "open": true
+            }
+          },
+          "items": [
+            {
+              "x": 0,
+              "y": 0,
+              "width": 6,
+              "height": 5,
+              "content": {
+                "$ref": "#/spec/panels/process-rss"
+              }
+            },
+            {
+              "x": 6,
+              "y": 0,
+              "width": 6,
+              "height": 5,
+              "content": {
+                "$ref": "#/spec/panels/context-switches"
+              }
+            },
+            {
+              "x": 0,
+              "y": 5,
+              "width": 6,
+              "height": 5,
+              "content": {
+                "$ref": "#/spec/panels/native-stacks"
+              }
+            },
+            {
+              "x": 6,
+              "y": 5,
+              "width": 6,
+              "height": 5,
+              "content": {
+                "$ref": "#/spec/panels/native-threads-memory"
+              }
+            },
+            {
+              "x": 0,
+              "y": 10,
+              "width": 6,
+              "height": 5,
+              "content": {
+                "$ref": "#/spec/panels/native-health"
+              }
+            },
+            {
+              "x": 6,
+              "y": 10,
+              "width": 6,
+              "height": 5,
+              "content": {
+                "$ref": "#/spec/panels/nmt-age"
+              }
+            }
+          ]
+        }
+      },
+      {
+        "kind": "Grid",
+        "spec": {
+          "display": {
+            "title": "05 · Garbage collection — cost, frequency & pause distribution",
+            "collapse": {
+              "open": true
+            }
+          },
+          "items": [
+            {
+              "x": 0,
+              "y": 0,
+              "width": 6,
+              "height": 5,
+              "content": {
+                "$ref": "#/spec/panels/gc-allocation"
+              }
+            },
+            {
+              "x": 6,
+              "y": 0,
+              "width": 6,
+              "height": 5,
+              "content": {
+                "$ref": "#/spec/panels/gc-pause-cost"
+              }
+            },
+            {
+              "x": 0,
+              "y": 5,
+              "width": 6,
+              "height": 5,
+              "content": {
+                "$ref": "#/spec/panels/gc-frequency"
+              }
+            },
+            {
+              "x": 6,
+              "y": 5,
+              "width": 6,
+              "height": 5,
+              "content": {
+                "$ref": "#/spec/panels/gc-duration"
+              }
+            }
+          ]
+        }
+      },
+      {
+        "kind": "Grid",
+        "spec": {
+          "display": {
+            "title": "06 · Threads, classes & process resources",
+            "collapse": {
+              "open": true
+            }
+          },
+          "items": [
+            {
+              "x": 0,
+              "y": 0,
+              "width": 6,
+              "height": 5,
+              "content": {
+                "$ref": "#/spec/panels/threads-states"
+              }
+            },
+            {
+              "x": 6,
+              "y": 0,
+              "width": 6,
+              "height": 5,
+              "content": {
+                "$ref": "#/spec/panels/threads-live"
+              }
+            },
+            {
+              "x": 0,
+              "y": 5,
+              "width": 6,
+              "height": 5,
+              "content": {
+                "$ref": "#/spec/panels/classes"
+              }
+            },
+            {
+              "x": 6,
+              "y": 5,
+              "width": 6,
+              "height": 5,
+              "content": {
+                "$ref": "#/spec/panels/class-churn"
+              }
+            },
+            {
+              "x": 0,
+              "y": 10,
+              "width": 6,
+              "height": 5,
+              "content": {
+                "$ref": "#/spec/panels/fds"
+              }
+            },
+            {
+              "x": 6,
+              "y": 10,
+              "width": 6,
+              "height": 5,
+              "content": {
+                "$ref": "#/spec/panels/jit"
+              }
+            }
+          ]
+        }
+      }
+    ],
+    "duration": "30m",
+    "refreshInterval": "5s",
+    "links": []
+  }
+}

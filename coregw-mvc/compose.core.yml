@@ -1,0 +1,18 @@
+services:
+  core-mock:
+    image: wiremock/wiremock:3.13.2
+    ports:
+      - "127.0.0.1:9090:9090"
+    volumes:
+      - ./wiremock/mappings:/home/wiremock/mappings:ro
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9090/__admin/health"]
+      interval: 5s
+      timeout: 2s
+      retries: 10
+    command:
+      - --port=9090
+      - --global-response-templating
+      - --no-request-journal
+      - --async-response-enabled=true
+      - --async-response-threads=100

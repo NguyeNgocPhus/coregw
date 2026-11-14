@@ -1,0 +1,27 @@
+{
+  "name": "orders-error",
+  "priority": 1,
+  "request": {
+    "method": "POST",
+    "urlPath": "/orders",
+    "bodyPatterns": [
+      {
+        "matchesJsonPath": {
+          "expression": "$.mockScenario",
+          "equalTo": "error"
+        }
+      }
+    ]
+  },
+  "response": {
+    "status": 500,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "fixedDelayMilliseconds": 0,
+    "jsonBody": {
+      "code": "CORE_ERROR",
+      "message": "Simulated core failure"
+    }
+  }
+}

@@ -1,0 +1,1780 @@
+{
+  "schemaVersion": "v6",
+  "generateName": true,
+  "tags": [
+    {
+      "key": "tag",
+      "value": "coregw"
+    },
+    {
+      "key": "tag",
+      "value": "operations"
+    }
+  ],
+  "spec": {
+    "display": {
+      "name": "Coregw MVC — Lettuce Pool & Redis Server",
+      "description": "Client/pool metrics belong to the selected app; Redis server panels belong to the exporter and include ALL clients. Compare equal traffic and separate time windows. Pool max-active is a limit, not a preallocated connection count."
+    },
+    "variables": [
+      {
+        "kind": "ListVariable",
+        "spec": {
+          "name": "service",
+          "display": {
+            "name": "Service",
+            "description": ""
+          },
+          "allowAllValue": true,
+          "allowMultiple": true,
+          "customAllValue": ".*",
+          "capturingRegexp": "",
+          "sort": "alphabetical-asc",
+          "plugin": {
+            "kind": "signoz/CustomVariable",
+            "spec": {
+              "customValue": "coregw-mvc,coregw-webflux"
+            }
+          }
+        }
+      },
+      {
+        "kind": "ListVariable",
+        "spec": {
+          "name": "instance",
+          "display": {
+            "name": "JVM instance",
+            "description": ""
+          },
+          "allowAllValue": true,
+          "allowMultiple": true,
+          "customAllValue": ".*",
+          "capturingRegexp": "",
+          "sort": "alphabetical-asc",
+          "plugin": {
+            "kind": "signoz/DynamicVariable",
+            "spec": {
+              "name": "service.instance.id",
+              "signal": "metrics"
+            }
+          }
+        }
+      },
+      {
+        "kind": "ListVariable",
+        "spec": {
+          "name": "mode",
+          "display": {
+            "name": "Redis mode",
+            "description": ""
+          },
+          "allowAllValue": true,
+          "allowMultiple": true,
+          "customAllValue": ".*",
+          "capturingRegexp": "",
+          "sort": "alphabetical-asc",
+          "plugin": {
+            "kind": "signoz/DynamicVariable",
+            "spec": {
+              "name": "redis_mode",
+              "signal": "metrics"
+            }
+          }
+        }
+      },
+      {
+        "kind": "ListVariable",
+        "spec": {
+          "name": "environment",
+          "display": {
+            "name": "Environment",
+            "description": ""
+          },
+          "allowAllValue": true,
+          "allowMultiple": true,
+          "customAllValue": ".*",
+          "capturingRegexp": "",
+          "sort": "alphabetical-asc",
+          "plugin": {
+            "kind": "signoz/DynamicVariable",
+            "spec": {
+              "name": "environment",
+              "signal": "metrics"
+            }
+          }
+        }
+      },
+      {
+        "kind": "ListVariable",
+        "spec": {
+          "name": "redis_instance",
+          "display": {
+            "name": "Redis exporter instance",
+            "description": ""
+          },
+          "allowAllValue": true,
+          "allowMultiple": true,
+          "customAllValue": ".*",
+          "capturingRegexp": "",
+          "sort": "alphabetical-asc",
+          "plugin": {
+            "kind": "signoz/DynamicVariable",
+            "spec": {
+              "name": "service.instance.id",
+              "signal": "metrics"
+            }
+          }
+        }
+      }
+    ],
+    "panels": {
+      "redis-up": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "Redis reachable",
+            "description": "Current value. Includes all clients; app mode/environment filters do not scope Redis server metrics."
+          },
+          "plugin": {
+            "kind": "signoz/NumberPanel",
+            "spec": {
+              "visualization": {
+                "timePreference": "global_time"
+              },
+              "formatting": {
+                "unit": "short",
+                "decimalPrecision": "2"
+              },
+              "thresholds": null
+            }
+          },
+          "queries": [
+            {
+              "kind": "scalar",
+              "spec": {
+                "name": "A",
+                "plugin": {
+                  "kind": "signoz/PromQLQuery",
+                  "spec": {
+                    "name": "A",
+                    "query": "min({__name__=\"redis_up\",\"service.name\"=\"redis\",\"service.instance.id\"=~\"$redis_instance\"})",
+                    "legend": "",
+                    "disabled": false
+                  }
+                }
+              }
+            }
+          ],
+          "links": []
+        }
+      },
+      "clients-now": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "Connected clients",
+            "description": "Current value. Includes all clients; app mode/environment filters do not scope Redis server metrics."
+          },
+          "plugin": {
+            "kind": "signoz/NumberPanel",
+            "spec": {
+              "visualization": {
+                "timePreference": "global_time"
+              },
+              "formatting": {
+                "unit": "short",
+                "decimalPrecision": "2"
+              },
+              "thresholds": null
+            }
+          },
+          "queries": [
+            {
+              "kind": "scalar",
+              "spec": {
+                "name": "A",
+                "plugin": {
+                  "kind": "signoz/PromQLQuery",
+                  "spec": {
+                    "name": "A",
+                    "query": "sum({__name__=\"redis_connected_clients\",\"service.name\"=\"redis\",\"service.instance.id\"=~\"$redis_instance\"})",
+                    "legend": "",
+                    "disabled": false
+                  }
+                }
+              }
+            }
+          ],
+          "links": []
+        }
+      },
+      "redis-used": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "Redis allocated memory",
+            "description": "Current value. Includes all clients; app mode/environment filters do not scope Redis server metrics."
+          },
+          "plugin": {
+            "kind": "signoz/NumberPanel",
+            "spec": {
+              "visualization": {
+                "timePreference": "global_time"
+              },
+              "formatting": {
+                "unit": "bytes",
+                "decimalPrecision": "2"
+              },
+              "thresholds": null
+            }
+          },
+          "queries": [
+            {
+              "kind": "scalar",
+              "spec": {
+                "name": "A",
+                "plugin": {
+                  "kind": "signoz/PromQLQuery",
+                  "spec": {
+                    "name": "A",
+                    "query": "sum({__name__=\"redis_memory_used_bytes\",\"service.name\"=\"redis\",\"service.instance.id\"=~\"$redis_instance\"})",
+                    "legend": "",
+                    "disabled": false
+                  }
+                }
+              }
+            }
+          ],
+          "links": []
+        }
+      },
+      "redis-rss": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "Redis process RSS",
+            "description": "Current value. Includes all clients; app mode/environment filters do not scope Redis server metrics."
+          },
+          "plugin": {
+            "kind": "signoz/NumberPanel",
+            "spec": {
+              "visualization": {
+                "timePreference": "global_time"
+              },
+              "formatting": {
+                "unit": "bytes",
+                "decimalPrecision": "2"
+              },
+              "thresholds": null
+            }
+          },
+          "queries": [
+            {
+              "kind": "scalar",
+              "spec": {
+                "name": "A",
+                "plugin": {
+                  "kind": "signoz/PromQLQuery",
+                  "spec": {
+                    "name": "A",
+                    "query": "sum({__name__=\"redis_memory_used_rss_bytes\",\"service.name\"=\"redis\",\"service.instance.id\"=~\"$redis_instance\"})",
+                    "legend": "",
+                    "disabled": false
+                  }
+                }
+              }
+            }
+          ],
+          "links": []
+        }
+      },
+      "command-rate": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "GET / SET / HSET completion rate",
+            "description": "Includes startup/prepare SETs; exclude those time windows for benchmark comparisons."
+          },
+          "plugin": {
+            "kind": "signoz/TimeSeriesPanel",
+            "spec": {
+              "visualization": {
+                "timePreference": "global_time"
+              },
+              "formatting": {
+                "unit": "ops",
+                "decimalPrecision": "2"
+              },
+              "thresholds": null,
+              "chartAppearance": {
+                "lineInterpolation": "linear",
+                "showPoints": false,
+                "lineStyle": "solid",
+                "fillMode": "none",
+                "spanGaps": {
+                  "fillOnlyBelow": false,
+                  "fillLessThan": ""
+                }
+              },
+              "axes": {
+                "softMin": 0,
+                "softMax": null,
+                "isLogScale": false
+              },
+              "legend": {
+                "position": "bottom",
+                "mode": "list",
+                "customColors": null
+              }
+            }
+          },
+          "queries": [
+            {
+              "kind": "time_series",
+              "spec": {
+                "name": "A",
+                "plugin": {
+                  "kind": "signoz/PromQLQuery",
+                  "spec": {
+                    "name": "A",
+                    "query": "sum by (\"service.name\",\"service.instance.id\",redis_mode,command) (rate({__name__=\"lettuce_command_completion_seconds.count\",\"service.name\"=~\"$service\",\"service.instance.id\"=~\"$instance\",redis_mode=~\"$mode\",environment=~\"$environment\",command=~\"GET|SET|HSET\"}[1m]))",
+                    "legend": "{{command}} · {{service.instance.id}} · {{redis_mode}}",
+                    "disabled": false
+                  }
+                }
+              }
+            }
+          ],
+          "links": []
+        }
+      },
+      "command-mean": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "Command completion · mean",
+            "description": "Lettuce client timing includes network and client scheduling; not Redis server execution alone."
+          },
+          "plugin": {
+            "kind": "signoz/TimeSeriesPanel",
+            "spec": {
+              "visualization": {
+                "timePreference": "global_time"
+              },
+              "formatting": {
+                "unit": "s",
+                "decimalPrecision": "2"
+              },
+              "thresholds": null,
+              "chartAppearance": {
+                "lineInterpolation": "linear",
+                "showPoints": false,
+                "lineStyle": "solid",
+                "fillMode": "none",
+                "spanGaps": {
+                  "fillOnlyBelow": false,
+                  "fillLessThan": ""
+                }
+              },
+              "axes": {
+                "softMin": 0,
+                "softMax": null,
+                "isLogScale": false
+              },
+              "legend": {
+                "position": "bottom",
+                "mode": "list",
+                "customColors": null
+              }
+            }
+          },
+          "queries": [
+            {
+              "kind": "time_series",
+              "spec": {
+                "name": "A",
+                "plugin": {
+                  "kind": "signoz/PromQLQuery",
+                  "spec": {
+                    "name": "A",
+                    "query": "sum by (\"service.name\",\"service.instance.id\",redis_mode,command) (rate({__name__=\"lettuce_command_completion_seconds.sum\",\"service.name\"=~\"$service\",\"service.instance.id\"=~\"$instance\",redis_mode=~\"$mode\",environment=~\"$environment\",command=~\"GET|SET|HSET\"}[1m])) / sum by (\"service.name\",\"service.instance.id\",redis_mode,command) (rate({__name__=\"lettuce_command_completion_seconds.count\",\"service.name\"=~\"$service\",\"service.instance.id\"=~\"$instance\",redis_mode=~\"$mode\",environment=~\"$environment\",command=~\"GET|SET|HSET\"}[1m]))",
+                    "legend": "{{command}} · {{service.instance.id}} · {{redis_mode}}",
+                    "disabled": false
+                  }
+                }
+              }
+            }
+          ],
+          "links": []
+        }
+      },
+      "command-p90": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "Command completion · p90",
+            "description": "Histogram estimate per JVM, Redis mode and command. Does not include Commons Pool acquisition."
+          },
+          "plugin": {
+            "kind": "signoz/TimeSeriesPanel",
+            "spec": {
+              "visualization": {
+                "timePreference": "global_time"
+              },
+              "formatting": {
+                "unit": "s",
+                "decimalPrecision": "2"
+              },
+              "thresholds": null,
+              "chartAppearance": {
+                "lineInterpolation": "linear",
+                "showPoints": false,
+                "lineStyle": "solid",
+                "fillMode": "none",
+                "spanGaps": {
+                  "fillOnlyBelow": false,
+                  "fillLessThan": ""
+                }
+              },
+              "axes": {
+                "softMin": 0,
+                "softMax": null,
+                "isLogScale": false
+              },
+              "legend": {
+                "position": "bottom",
+                "mode": "list",
+                "customColors": null
+              }
+            }
+          },
+          "queries": [
+            {
+              "kind": "time_series",
+              "spec": {
+                "name": "A",
+                "plugin": {
+                  "kind": "signoz/PromQLQuery",
+                  "spec": {
+                    "name": "A",
+                    "query": "histogram_quantile(.90, sum by (le,\"service.name\",\"service.instance.id\",redis_mode,command) (rate({__name__=\"lettuce_command_completion_seconds.bucket\",\"service.name\"=~\"$service\",\"service.instance.id\"=~\"$instance\",redis_mode=~\"$mode\",environment=~\"$environment\",command=~\"GET|SET|HSET\"}[1m])))",
+                    "legend": "{{command}} · {{service.instance.id}} · {{redis_mode}}",
+                    "disabled": false
+                  }
+                }
+              }
+            }
+          ],
+          "links": []
+        }
+      },
+      "command-p99": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "Command completion · p99",
+            "description": "Histogram estimate per JVM, Redis mode and command. Does not include Commons Pool acquisition."
+          },
+          "plugin": {
+            "kind": "signoz/TimeSeriesPanel",
+            "spec": {
+              "visualization": {
+                "timePreference": "global_time"
+              },
+              "formatting": {
+                "unit": "s",
+                "decimalPrecision": "2"
+              },
+              "thresholds": null,
+              "chartAppearance": {
+                "lineInterpolation": "linear",
+                "showPoints": false,
+                "lineStyle": "solid",
+                "fillMode": "none",
+                "spanGaps": {
+                  "fillOnlyBelow": false,
+                  "fillLessThan": ""
+                }
+              },
+              "axes": {
+                "softMin": 0,
+                "softMax": null,
+                "isLogScale": false
+              },
+              "legend": {
+                "position": "bottom",
+                "mode": "list",
+                "customColors": null
+              }
+            }
+          },
+          "queries": [
+            {
+              "kind": "time_series",
+              "spec": {
+                "name": "A",
+                "plugin": {
+                  "kind": "signoz/PromQLQuery",
+                  "spec": {
+                    "name": "A",
+                    "query": "histogram_quantile(.99, sum by (le,\"service.name\",\"service.instance.id\",redis_mode,command) (rate({__name__=\"lettuce_command_completion_seconds.bucket\",\"service.name\"=~\"$service\",\"service.instance.id\"=~\"$instance\",redis_mode=~\"$mode\",environment=~\"$environment\",command=~\"GET|SET|HSET\"}[1m])))",
+                    "legend": "{{command}} · {{service.instance.id}} · {{redis_mode}}",
+                    "disabled": false
+                  }
+                }
+              }
+            }
+          ],
+          "links": []
+        }
+      },
+      "pool-connections": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "Pool active / idle / limit",
+            "description": "Active + idle = current pooled native connections. Limit is max-active; connections are created on demand."
+          },
+          "plugin": {
+            "kind": "signoz/TimeSeriesPanel",
+            "spec": {
+              "visualization": {
+                "timePreference": "global_time"
+              },
+              "formatting": {
+                "unit": "short",
+                "decimalPrecision": "2"
+              },
+              "thresholds": null,
+              "chartAppearance": {
+                "lineInterpolation": "linear",
+                "showPoints": false,
+                "lineStyle": "solid",
+                "fillMode": "none",
+                "spanGaps": {
+                  "fillOnlyBelow": false,
+                  "fillLessThan": ""
+                }
+              },
+              "axes": {
+                "softMin": 0,
+                "softMax": null,
+                "isLogScale": false
+              },
+              "legend": {
+                "position": "bottom",
+                "mode": "list",
+                "customColors": null
+              }
+            }
+          },
+          "queries": [
+            {
+              "kind": "time_series",
+              "spec": {
+                "name": "A",
+                "plugin": {
+                  "kind": "signoz/PromQLQuery",
+                  "spec": {
+                    "name": "A",
+                    "query": "label_replace(({__name__=\"redis_pool_active\",\"service.name\"=~\"$service\",\"service.instance.id\"=~\"$instance\",redis_mode=~\"$mode\",environment=~\"$environment\"}), \"view\", \"active\", \"__name__\", \".*\") or label_replace(({__name__=\"redis_pool_idle\",\"service.name\"=~\"$service\",\"service.instance.id\"=~\"$instance\",redis_mode=~\"$mode\",environment=~\"$environment\"}), \"view\", \"idle\", \"__name__\", \".*\") or label_replace(({__name__=\"redis_pool_limit\",\"service.name\"=~\"$service\",\"service.instance.id\"=~\"$instance\",redis_mode=~\"$mode\",environment=~\"$environment\"}), \"view\", \"limit\", \"__name__\", \".*\")",
+                    "legend": "{{view}} · {{service.instance.id}}",
+                    "disabled": false
+                  }
+                }
+              }
+            }
+          ],
+          "links": []
+        }
+      },
+      "pool-pressure": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "Pool utilization · active / limit",
+            "description": "Multiplexing has no Commons Pool series. A 5s scrape may miss short-lived saturation."
+          },
+          "plugin": {
+            "kind": "signoz/TimeSeriesPanel",
+            "spec": {
+              "visualization": {
+                "timePreference": "global_time"
+              },
+              "formatting": {
+                "unit": "percentunit",
+                "decimalPrecision": "2"
+              },
+              "thresholds": [
+                {
+                  "value": 0.8,
+                  "unit": "percentunit",
+                  "color": "#F59E0B",
+                  "label": "Review sustained saturation"
+                }
+              ],
+              "chartAppearance": {
+                "lineInterpolation": "linear",
+                "showPoints": false,
+                "lineStyle": "solid",
+                "fillMode": "none",
+                "spanGaps": {
+                  "fillOnlyBelow": false,
+                  "fillLessThan": ""
+                }
+              },
+              "axes": {
+                "softMin": 0,
+                "softMax": null,
+                "isLogScale": false
+              },
+              "legend": {
+                "position": "bottom",
+                "mode": "list",
+                "customColors": null
+              }
+            }
+          },
+          "queries": [
+            {
+              "kind": "time_series",
+              "spec": {
+                "name": "A",
+                "plugin": {
+                  "kind": "signoz/PromQLQuery",
+                  "spec": {
+                    "name": "A",
+                    "query": "{__name__=\"redis_pool_active\",\"service.name\"=~\"$service\",\"service.instance.id\"=~\"$instance\",redis_mode=~\"$mode\",environment=~\"$environment\"} / {__name__=\"redis_pool_limit\",\"service.name\"=~\"$service\",\"service.instance.id\"=~\"$instance\",redis_mode=~\"$mode\",environment=~\"$environment\"}",
+                    "legend": "{{service.instance.id}}",
+                    "disabled": false
+                  }
+                }
+              }
+            }
+          ],
+          "links": []
+        }
+      },
+      "pool-waiters": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "Callers waiting for a pooled connection",
+            "description": "Sampled count, not Redis blocked_clients. A zero sample cannot rule out a short wait between scrapes."
+          },
+          "plugin": {
+            "kind": "signoz/TimeSeriesPanel",
+            "spec": {
+              "visualization": {
+                "timePreference": "global_time"
+              },
+              "formatting": {
+                "unit": "short",
+                "decimalPrecision": "2"
+              },
+              "thresholds": null,
+              "chartAppearance": {
+                "lineInterpolation": "linear",
+                "showPoints": false,
+                "lineStyle": "solid",
+                "fillMode": "none",
+                "spanGaps": {
+                  "fillOnlyBelow": false,
+                  "fillLessThan": ""
+                }
+              },
+              "axes": {
+                "softMin": 0,
+                "softMax": null,
+                "isLogScale": false
+              },
+              "legend": {
+                "position": "bottom",
+                "mode": "list",
+                "customColors": null
+              }
+            }
+          },
+          "queries": [
+            {
+              "kind": "time_series",
+              "spec": {
+                "name": "A",
+                "plugin": {
+                  "kind": "signoz/PromQLQuery",
+                  "spec": {
+                    "name": "A",
+                    "query": "{__name__=\"redis_pool_waiters\",\"service.name\"=~\"$service\",\"service.instance.id\"=~\"$instance\",redis_mode=~\"$mode\",environment=~\"$environment\"}",
+                    "legend": "{{service.instance.id}}",
+                    "disabled": false
+                  }
+                }
+              }
+            }
+          ],
+          "links": []
+        }
+      },
+      "pool-wait": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "Borrow wait · rolling mean / lifetime max",
+            "description": "Commons Pool MXBean integer milliseconds; sub-ms waits can appear as 0. Max includes startup and is not a window p99."
+          },
+          "plugin": {
+            "kind": "signoz/TimeSeriesPanel",
+            "spec": {
+              "visualization": {
+                "timePreference": "global_time"
+              },
+              "formatting": {
+                "unit": "ms",
+                "decimalPrecision": "2"
+              },
+              "thresholds": null,
+              "chartAppearance": {
+                "lineInterpolation": "linear",
+                "showPoints": false,
+                "lineStyle": "solid",
+                "fillMode": "none",
+                "spanGaps": {
+                  "fillOnlyBelow": false,
+                  "fillLessThan": ""
+                }
+              },
+              "axes": {
+                "softMin": 0,
+                "softMax": null,
+                "isLogScale": false
+              },
+              "legend": {
+                "position": "bottom",
+                "mode": "list",
+                "customColors": null
+              }
+            }
+          },
+          "queries": [
+            {
+              "kind": "time_series",
+              "spec": {
+                "name": "A",
+                "plugin": {
+                  "kind": "signoz/PromQLQuery",
+                  "spec": {
+                    "name": "A",
+                    "query": "label_replace(({__name__=\"redis_pool_borrow_wait_mean_ms\",\"service.name\"=~\"$service\",\"service.instance.id\"=~\"$instance\",redis_mode=~\"$mode\",environment=~\"$environment\"}), \"view\", \"rolling mean\", \"__name__\", \".*\") or label_replace(({__name__=\"redis_pool_borrow_wait_max_ms\",\"service.name\"=~\"$service\",\"service.instance.id\"=~\"$instance\",redis_mode=~\"$mode\",environment=~\"$environment\"}), \"view\", \"lifetime max\", \"__name__\", \".*\")",
+                    "legend": "{{view}} · {{service.instance.id}}",
+                    "disabled": false
+                  }
+                }
+              }
+            }
+          ],
+          "links": []
+        }
+      },
+      "pool-borrows": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "Pool borrow rate",
+            "description": "Cumulative borrow count exposed as gauge; rate is interpreted as borrows/s and resets on process restart."
+          },
+          "plugin": {
+            "kind": "signoz/TimeSeriesPanel",
+            "spec": {
+              "visualization": {
+                "timePreference": "global_time"
+              },
+              "formatting": {
+                "unit": "ops",
+                "decimalPrecision": "2"
+              },
+              "thresholds": null,
+              "chartAppearance": {
+                "lineInterpolation": "linear",
+                "showPoints": false,
+                "lineStyle": "solid",
+                "fillMode": "none",
+                "spanGaps": {
+                  "fillOnlyBelow": false,
+                  "fillLessThan": ""
+                }
+              },
+              "axes": {
+                "softMin": 0,
+                "softMax": null,
+                "isLogScale": false
+              },
+              "legend": {
+                "position": "bottom",
+                "mode": "list",
+                "customColors": null
+              }
+            }
+          },
+          "queries": [
+            {
+              "kind": "time_series",
+              "spec": {
+                "name": "A",
+                "plugin": {
+                  "kind": "signoz/PromQLQuery",
+                  "spec": {
+                    "name": "A",
+                    "query": "rate({__name__=\"redis_pool_borrowed\",\"service.name\"=~\"$service\",\"service.instance.id\"=~\"$instance\",redis_mode=~\"$mode\",environment=~\"$environment\"}[1m])",
+                    "legend": "{{service.instance.id}}",
+                    "disabled": false
+                  }
+                }
+              }
+            }
+          ],
+          "links": []
+        }
+      },
+      "pool-churn": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "Connection creations / destroys",
+            "description": "Persistent churn after warm-up can explain higher CPU and latency. max-active does not preallocate connections."
+          },
+          "plugin": {
+            "kind": "signoz/TimeSeriesPanel",
+            "spec": {
+              "visualization": {
+                "timePreference": "global_time"
+              },
+              "formatting": {
+                "unit": "ops",
+                "decimalPrecision": "2"
+              },
+              "thresholds": null,
+              "chartAppearance": {
+                "lineInterpolation": "linear",
+                "showPoints": false,
+                "lineStyle": "solid",
+                "fillMode": "none",
+                "spanGaps": {
+                  "fillOnlyBelow": false,
+                  "fillLessThan": ""
+                }
+              },
+              "axes": {
+                "softMin": 0,
+                "softMax": null,
+                "isLogScale": false
+              },
+              "legend": {
+                "position": "bottom",
+                "mode": "list",
+                "customColors": null
+              }
+            }
+          },
+          "queries": [
+            {
+              "kind": "time_series",
+              "spec": {
+                "name": "A",
+                "plugin": {
+                  "kind": "signoz/PromQLQuery",
+                  "spec": {
+                    "name": "A",
+                    "query": "label_replace((rate({__name__=\"redis_pool_creations\",\"service.name\"=~\"$service\",\"service.instance.id\"=~\"$instance\",redis_mode=~\"$mode\",environment=~\"$environment\"}[1m])), \"view\", \"creations\", \"__name__\", \".*\") or label_replace((rate({__name__=\"redis_pool_destroyed\",\"service.name\"=~\"$service\",\"service.instance.id\"=~\"$instance\",redis_mode=~\"$mode\",environment=~\"$environment\"}[1m])), \"view\", \"destroys\", \"__name__\", \".*\")",
+                    "legend": "{{view}} · {{service.instance.id}}",
+                    "disabled": false
+                  }
+                }
+              }
+            }
+          ],
+          "links": []
+        }
+      },
+      "redis-cpu": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "Redis CPU · core equivalents",
+            "description": "CPU seconds/s; 1.0 is one core. Not directly comparable to JVM capacity fraction."
+          },
+          "plugin": {
+            "kind": "signoz/TimeSeriesPanel",
+            "spec": {
+              "visualization": {
+                "timePreference": "global_time"
+              },
+              "formatting": {
+                "unit": "short",
+                "decimalPrecision": "2"
+              },
+              "thresholds": null,
+              "chartAppearance": {
+                "lineInterpolation": "linear",
+                "showPoints": false,
+                "lineStyle": "solid",
+                "fillMode": "none",
+                "spanGaps": {
+                  "fillOnlyBelow": false,
+                  "fillLessThan": ""
+                }
+              },
+              "axes": {
+                "softMin": 0,
+                "softMax": null,
+                "isLogScale": false
+              },
+              "legend": {
+                "position": "bottom",
+                "mode": "list",
+                "customColors": null
+              }
+            }
+          },
+          "queries": [
+            {
+              "kind": "time_series",
+              "spec": {
+                "name": "A",
+                "plugin": {
+                  "kind": "signoz/PromQLQuery",
+                  "spec": {
+                    "name": "A",
+                    "query": "label_replace((rate({__name__=\"redis_cpu_user_seconds_total\",\"service.name\"=\"redis\",\"service.instance.id\"=~\"$redis_instance\"}[1m])), \"view\", \"user\", \"__name__\", \".*\") or label_replace((rate({__name__=\"redis_cpu_sys_seconds_total\",\"service.name\"=\"redis\",\"service.instance.id\"=~\"$redis_instance\"}[1m])), \"view\", \"system\", \"__name__\", \".*\")",
+                    "legend": "{{view}} · {{service.instance.id}}",
+                    "disabled": false
+                  }
+                }
+              }
+            }
+          ],
+          "links": []
+        }
+      },
+      "redis-clients": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "Redis connected / blocked clients",
+            "description": "Connected includes app, exporter and all other clients. Blocked means Redis blocking commands, not callers waiting for the Java pool."
+          },
+          "plugin": {
+            "kind": "signoz/TimeSeriesPanel",
+            "spec": {
+              "visualization": {
+                "timePreference": "global_time"
+              },
+              "formatting": {
+                "unit": "short",
+                "decimalPrecision": "2"
+              },
+              "thresholds": null,
+              "chartAppearance": {
+                "lineInterpolation": "linear",
+                "showPoints": false,
+                "lineStyle": "solid",
+                "fillMode": "none",
+                "spanGaps": {
+                  "fillOnlyBelow": false,
+                  "fillLessThan": ""
+                }
+              },
+              "axes": {
+                "softMin": 0,
+                "softMax": null,
+                "isLogScale": false
+              },
+              "legend": {
+                "position": "bottom",
+                "mode": "list",
+                "customColors": null
+              }
+            }
+          },
+          "queries": [
+            {
+              "kind": "time_series",
+              "spec": {
+                "name": "A",
+                "plugin": {
+                  "kind": "signoz/PromQLQuery",
+                  "spec": {
+                    "name": "A",
+                    "query": "label_replace(({__name__=\"redis_connected_clients\",\"service.name\"=\"redis\",\"service.instance.id\"=~\"$redis_instance\"}), \"view\", \"connected\", \"__name__\", \".*\") or label_replace(({__name__=\"redis_blocked_clients\",\"service.name\"=\"redis\",\"service.instance.id\"=~\"$redis_instance\"}), \"view\", \"blocked\", \"__name__\", \".*\")",
+                    "legend": "{{view}} · {{service.instance.id}}",
+                    "disabled": false
+                  }
+                }
+              }
+            }
+          ],
+          "links": []
+        }
+      },
+      "redis-memory": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "Redis allocated / RSS memory",
+            "description": "Redis allocator bytes vs physical resident process memory. RSS-minus-used is not proof of a leak."
+          },
+          "plugin": {
+            "kind": "signoz/TimeSeriesPanel",
+            "spec": {
+              "visualization": {
+                "timePreference": "global_time"
+              },
+              "formatting": {
+                "unit": "bytes",
+                "decimalPrecision": "2"
+              },
+              "thresholds": null,
+              "chartAppearance": {
+                "lineInterpolation": "linear",
+                "showPoints": false,
+                "lineStyle": "solid",
+                "fillMode": "none",
+                "spanGaps": {
+                  "fillOnlyBelow": false,
+                  "fillLessThan": ""
+                }
+              },
+              "axes": {
+                "softMin": 0,
+                "softMax": null,
+                "isLogScale": false
+              },
+              "legend": {
+                "position": "bottom",
+                "mode": "list",
+                "customColors": null
+              }
+            }
+          },
+          "queries": [
+            {
+              "kind": "time_series",
+              "spec": {
+                "name": "A",
+                "plugin": {
+                  "kind": "signoz/PromQLQuery",
+                  "spec": {
+                    "name": "A",
+                    "query": "label_replace(({__name__=\"redis_memory_used_bytes\",\"service.name\"=\"redis\",\"service.instance.id\"=~\"$redis_instance\"}), \"view\", \"allocated\", \"__name__\", \".*\") or label_replace(({__name__=\"redis_memory_used_rss_bytes\",\"service.name\"=\"redis\",\"service.instance.id\"=~\"$redis_instance\"}), \"view\", \"RSS\", \"__name__\", \".*\")",
+                    "legend": "{{view}} · {{service.instance.id}}",
+                    "disabled": false
+                  }
+                }
+              }
+            }
+          ],
+          "links": []
+        }
+      },
+      "redis-memory-pressure": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "Redis memory / configured maxmemory",
+            "description": "No series when maxmemory=0 (unlimited); do not display 0% as healthy for an unlimited server."
+          },
+          "plugin": {
+            "kind": "signoz/TimeSeriesPanel",
+            "spec": {
+              "visualization": {
+                "timePreference": "global_time"
+              },
+              "formatting": {
+                "unit": "percentunit",
+                "decimalPrecision": "2"
+              },
+              "thresholds": [
+                {
+                  "value": 0.8,
+                  "unit": "percentunit",
+                  "color": "#F59E0B",
+                  "label": "Example: inspect sustained pressure"
+                }
+              ],
+              "chartAppearance": {
+                "lineInterpolation": "linear",
+                "showPoints": false,
+                "lineStyle": "solid",
+                "fillMode": "none",
+                "spanGaps": {
+                  "fillOnlyBelow": false,
+                  "fillLessThan": ""
+                }
+              },
+              "axes": {
+                "softMin": 0,
+                "softMax": null,
+                "isLogScale": false
+              },
+              "legend": {
+                "position": "bottom",
+                "mode": "list",
+                "customColors": null
+              }
+            }
+          },
+          "queries": [
+            {
+              "kind": "time_series",
+              "spec": {
+                "name": "A",
+                "plugin": {
+                  "kind": "signoz/PromQLQuery",
+                  "spec": {
+                    "name": "A",
+                    "query": "{__name__=\"redis_memory_used_bytes\",\"service.name\"=\"redis\",\"service.instance.id\"=~\"$redis_instance\"} / ({__name__=\"redis_memory_max_bytes\",\"service.name\"=\"redis\",\"service.instance.id\"=~\"$redis_instance\"} > 0)",
+                    "legend": "{{service.instance.id}}",
+                    "disabled": false
+                  }
+                }
+              }
+            }
+          ],
+          "links": []
+        }
+      },
+      "redis-commands": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "Redis GET / SET / HSET throughput",
+            "description": "Server-side command calls/s from ALL clients. Includes seeding and monitoring overhead."
+          },
+          "plugin": {
+            "kind": "signoz/TimeSeriesPanel",
+            "spec": {
+              "visualization": {
+                "timePreference": "global_time"
+              },
+              "formatting": {
+                "unit": "ops",
+                "decimalPrecision": "2"
+              },
+              "thresholds": null,
+              "chartAppearance": {
+                "lineInterpolation": "linear",
+                "showPoints": false,
+                "lineStyle": "solid",
+                "fillMode": "none",
+                "spanGaps": {
+                  "fillOnlyBelow": false,
+                  "fillLessThan": ""
+                }
+              },
+              "axes": {
+                "softMin": 0,
+                "softMax": null,
+                "isLogScale": false
+              },
+              "legend": {
+                "position": "bottom",
+                "mode": "list",
+                "customColors": null
+              }
+            }
+          },
+          "queries": [
+            {
+              "kind": "time_series",
+              "spec": {
+                "name": "A",
+                "plugin": {
+                  "kind": "signoz/PromQLQuery",
+                  "spec": {
+                    "name": "A",
+                    "query": "rate({__name__=\"redis_commands_total\",\"service.name\"=\"redis\",\"service.instance.id\"=~\"$redis_instance\",cmd=~\"get|set|hset\"}[1m])",
+                    "legend": "{{cmd}} · {{service.instance.id}}",
+                    "disabled": false
+                  }
+                }
+              }
+            }
+          ],
+          "links": []
+        }
+      },
+      "redis-execution": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "Redis command execution · mean",
+            "description": "Server execution mean from INFO commandstats, excluding client pool wait and network. Not a percentile."
+          },
+          "plugin": {
+            "kind": "signoz/TimeSeriesPanel",
+            "spec": {
+              "visualization": {
+                "timePreference": "global_time"
+              },
+              "formatting": {
+                "unit": "s",
+                "decimalPrecision": "2"
+              },
+              "thresholds": null,
+              "chartAppearance": {
+                "lineInterpolation": "linear",
+                "showPoints": false,
+                "lineStyle": "solid",
+                "fillMode": "none",
+                "spanGaps": {
+                  "fillOnlyBelow": false,
+                  "fillLessThan": ""
+                }
+              },
+              "axes": {
+                "softMin": 0,
+                "softMax": null,
+                "isLogScale": false
+              },
+              "legend": {
+                "position": "bottom",
+                "mode": "list",
+                "customColors": null
+              }
+            }
+          },
+          "queries": [
+            {
+              "kind": "time_series",
+              "spec": {
+                "name": "A",
+                "plugin": {
+                  "kind": "signoz/PromQLQuery",
+                  "spec": {
+                    "name": "A",
+                    "query": "rate({__name__=\"redis_commands_duration_seconds_total\",\"service.name\"=\"redis\",\"service.instance.id\"=~\"$redis_instance\",cmd=~\"get|set|hset\"}[1m]) / rate({__name__=\"redis_commands_total\",\"service.name\"=\"redis\",\"service.instance.id\"=~\"$redis_instance\",cmd=~\"get|set|hset\"}[1m])",
+                    "legend": "{{cmd}} · {{service.instance.id}}",
+                    "disabled": false
+                  }
+                }
+              }
+            }
+          ],
+          "links": []
+        }
+      },
+      "redis-network": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "Redis network input / output",
+            "description": "All clients, including exporter."
+          },
+          "plugin": {
+            "kind": "signoz/TimeSeriesPanel",
+            "spec": {
+              "visualization": {
+                "timePreference": "global_time"
+              },
+              "formatting": {
+                "unit": "Bps",
+                "decimalPrecision": "2"
+              },
+              "thresholds": null,
+              "chartAppearance": {
+                "lineInterpolation": "linear",
+                "showPoints": false,
+                "lineStyle": "solid",
+                "fillMode": "none",
+                "spanGaps": {
+                  "fillOnlyBelow": false,
+                  "fillLessThan": ""
+                }
+              },
+              "axes": {
+                "softMin": 0,
+                "softMax": null,
+                "isLogScale": false
+              },
+              "legend": {
+                "position": "bottom",
+                "mode": "list",
+                "customColors": null
+              }
+            }
+          },
+          "queries": [
+            {
+              "kind": "time_series",
+              "spec": {
+                "name": "A",
+                "plugin": {
+                  "kind": "signoz/PromQLQuery",
+                  "spec": {
+                    "name": "A",
+                    "query": "label_replace((rate({__name__=\"redis_net_input_bytes_total\",\"service.name\"=\"redis\",\"service.instance.id\"=~\"$redis_instance\"}[1m])), \"view\", \"input\", \"__name__\", \".*\") or label_replace((rate({__name__=\"redis_net_output_bytes_total\",\"service.name\"=\"redis\",\"service.instance.id\"=~\"$redis_instance\"}[1m])), \"view\", \"output\", \"__name__\", \".*\")",
+                    "legend": "{{view}} · {{service.instance.id}}",
+                    "disabled": false
+                  }
+                }
+              }
+            }
+          ],
+          "links": []
+        }
+      },
+      "redis-hits": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "Redis keyspace hits / misses",
+            "description": "A cache miss is not necessarily an error. Benchmark preload keys are expected to hit."
+          },
+          "plugin": {
+            "kind": "signoz/TimeSeriesPanel",
+            "spec": {
+              "visualization": {
+                "timePreference": "global_time"
+              },
+              "formatting": {
+                "unit": "ops",
+                "decimalPrecision": "2"
+              },
+              "thresholds": null,
+              "chartAppearance": {
+                "lineInterpolation": "linear",
+                "showPoints": false,
+                "lineStyle": "solid",
+                "fillMode": "none",
+                "spanGaps": {
+                  "fillOnlyBelow": false,
+                  "fillLessThan": ""
+                }
+              },
+              "axes": {
+                "softMin": 0,
+                "softMax": null,
+                "isLogScale": false
+              },
+              "legend": {
+                "position": "bottom",
+                "mode": "list",
+                "customColors": null
+              }
+            }
+          },
+          "queries": [
+            {
+              "kind": "time_series",
+              "spec": {
+                "name": "A",
+                "plugin": {
+                  "kind": "signoz/PromQLQuery",
+                  "spec": {
+                    "name": "A",
+                    "query": "label_replace((rate({__name__=\"redis_keyspace_hits_total\",\"service.name\"=\"redis\",\"service.instance.id\"=~\"$redis_instance\"}[1m])), \"view\", \"hits\", \"__name__\", \".*\") or label_replace((rate({__name__=\"redis_keyspace_misses_total\",\"service.name\"=\"redis\",\"service.instance.id\"=~\"$redis_instance\"}[1m])), \"view\", \"misses\", \"__name__\", \".*\")",
+                    "legend": "{{view}} · {{service.instance.id}}",
+                    "disabled": false
+                  }
+                }
+              }
+            }
+          ],
+          "links": []
+        }
+      },
+      "redis-rejections": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "Evictions / rejected connections",
+            "description": "Memory pressure and connection-capacity failures. Do not infer success from low Redis command latency alone."
+          },
+          "plugin": {
+            "kind": "signoz/TimeSeriesPanel",
+            "spec": {
+              "visualization": {
+                "timePreference": "global_time"
+              },
+              "formatting": {
+                "unit": "ops",
+                "decimalPrecision": "2"
+              },
+              "thresholds": null,
+              "chartAppearance": {
+                "lineInterpolation": "linear",
+                "showPoints": false,
+                "lineStyle": "solid",
+                "fillMode": "none",
+                "spanGaps": {
+                  "fillOnlyBelow": false,
+                  "fillLessThan": ""
+                }
+              },
+              "axes": {
+                "softMin": 0,
+                "softMax": null,
+                "isLogScale": false
+              },
+              "legend": {
+                "position": "bottom",
+                "mode": "list",
+                "customColors": null
+              }
+            }
+          },
+          "queries": [
+            {
+              "kind": "time_series",
+              "spec": {
+                "name": "A",
+                "plugin": {
+                  "kind": "signoz/PromQLQuery",
+                  "spec": {
+                    "name": "A",
+                    "query": "label_replace((rate({__name__=\"redis_evicted_keys_total\",\"service.name\"=\"redis\",\"service.instance.id\"=~\"$redis_instance\"}[1m])), \"view\", \"evictions\", \"__name__\", \".*\") or label_replace((rate({__name__=\"redis_rejected_connections_total\",\"service.name\"=\"redis\",\"service.instance.id\"=~\"$redis_instance\"}[1m])), \"view\", \"rejected connections\", \"__name__\", \".*\")",
+                    "legend": "{{view}} · {{service.instance.id}}",
+                    "disabled": false
+                  }
+                }
+              }
+            }
+          ],
+          "links": []
+        }
+      },
+      "redis-scrape": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "App / exporter scrape availability",
+            "description": "Scrape and Redis up must be 1. Missing series is a telemetry gap, not zero usage."
+          },
+          "plugin": {
+            "kind": "signoz/TimeSeriesPanel",
+            "spec": {
+              "visualization": {
+                "timePreference": "global_time"
+              },
+              "formatting": {
+                "unit": "short",
+                "decimalPrecision": "2"
+              },
+              "thresholds": null,
+              "chartAppearance": {
+                "lineInterpolation": "linear",
+                "showPoints": false,
+                "lineStyle": "solid",
+                "fillMode": "none",
+                "spanGaps": {
+                  "fillOnlyBelow": false,
+                  "fillLessThan": ""
+                }
+              },
+              "axes": {
+                "softMin": 0,
+                "softMax": null,
+                "isLogScale": false
+              },
+              "legend": {
+                "position": "bottom",
+                "mode": "list",
+                "customColors": null
+              }
+            }
+          },
+          "queries": [
+            {
+              "kind": "time_series",
+              "spec": {
+                "name": "A",
+                "plugin": {
+                  "kind": "signoz/PromQLQuery",
+                  "spec": {
+                    "name": "A",
+                    "query": "label_replace(({__name__=\"up\",\"service.name\"=~\"$service\",\"service.instance.id\"=~\"$instance\"}), \"view\", \"app scrape\", \"__name__\", \".*\") or label_replace(({__name__=\"up\",\"service.name\"=\"redis\",\"service.instance.id\"=~\"$redis_instance\"}), \"view\", \"exporter scrape\", \"__name__\", \".*\") or label_replace(({__name__=\"redis_up\",\"service.name\"=\"redis\",\"service.instance.id\"=~\"$redis_instance\"}), \"view\", \"Redis reachable\", \"__name__\", \".*\")",
+                    "legend": "{{view}} · {{service.instance.id}}",
+                    "disabled": false
+                  }
+                }
+              }
+            }
+          ],
+          "links": []
+        }
+      }
+    },
+    "layouts": [
+      {
+        "kind": "Grid",
+        "spec": {
+          "display": {
+            "title": "01 · Redis server overview — exporter scoped, all Redis clients",
+            "collapse": {
+              "open": true
+            }
+          },
+          "items": [
+            {
+              "x": 0,
+              "y": 0,
+              "width": 3,
+              "height": 3,
+              "content": {
+                "$ref": "#/spec/panels/redis-up"
+              }
+            },
+            {
+              "x": 3,
+              "y": 0,
+              "width": 3,
+              "height": 3,
+              "content": {
+                "$ref": "#/spec/panels/clients-now"
+              }
+            },
+            {
+              "x": 6,
+              "y": 0,
+              "width": 3,
+              "height": 3,
+              "content": {
+                "$ref": "#/spec/panels/redis-used"
+              }
+            },
+            {
+              "x": 9,
+              "y": 0,
+              "width": 3,
+              "height": 3,
+              "content": {
+                "$ref": "#/spec/panels/redis-rss"
+              }
+            }
+          ]
+        }
+      },
+      {
+        "kind": "Grid",
+        "spec": {
+          "display": {
+            "title": "02 · Lettuce commands — client/network latency, outside pool acquisition",
+            "collapse": {
+              "open": true
+            }
+          },
+          "items": [
+            {
+              "x": 0,
+              "y": 0,
+              "width": 6,
+              "height": 5,
+              "content": {
+                "$ref": "#/spec/panels/command-rate"
+              }
+            },
+            {
+              "x": 6,
+              "y": 0,
+              "width": 6,
+              "height": 5,
+              "content": {
+                "$ref": "#/spec/panels/command-mean"
+              }
+            },
+            {
+              "x": 0,
+              "y": 5,
+              "width": 6,
+              "height": 5,
+              "content": {
+                "$ref": "#/spec/panels/command-p90"
+              }
+            },
+            {
+              "x": 6,
+              "y": 5,
+              "width": 6,
+              "height": 5,
+              "content": {
+                "$ref": "#/spec/panels/command-p99"
+              }
+            }
+          ]
+        }
+      },
+      {
+        "kind": "Grid",
+        "spec": {
+          "display": {
+            "title": "03 · Commons Pool — present only for mode=pool",
+            "collapse": {
+              "open": true
+            }
+          },
+          "items": [
+            {
+              "x": 0,
+              "y": 0,
+              "width": 6,
+              "height": 5,
+              "content": {
+                "$ref": "#/spec/panels/pool-connections"
+              }
+            },
+            {
+              "x": 6,
+              "y": 0,
+              "width": 6,
+              "height": 5,
+              "content": {
+                "$ref": "#/spec/panels/pool-pressure"
+              }
+            },
+            {
+              "x": 0,
+              "y": 5,
+              "width": 6,
+              "height": 5,
+              "content": {
+                "$ref": "#/spec/panels/pool-waiters"
+              }
+            },
+            {
+              "x": 6,
+              "y": 5,
+              "width": 6,
+              "height": 5,
+              "content": {
+                "$ref": "#/spec/panels/pool-wait"
+              }
+            },
+            {
+              "x": 0,
+              "y": 10,
+              "width": 6,
+              "height": 5,
+              "content": {
+                "$ref": "#/spec/panels/pool-borrows"
+              }
+            },
+            {
+              "x": 6,
+              "y": 10,
+              "width": 6,
+              "height": 5,
+              "content": {
+                "$ref": "#/spec/panels/pool-churn"
+              }
+            }
+          ]
+        }
+      },
+      {
+        "kind": "Grid",
+        "spec": {
+          "display": {
+            "title": "04 · Redis CPU, connections, memory, traffic & failures",
+            "collapse": {
+              "open": true
+            }
+          },
+          "items": [
+            {
+              "x": 0,
+              "y": 0,
+              "width": 6,
+              "height": 5,
+              "content": {
+                "$ref": "#/spec/panels/redis-cpu"
+              }
+            },
+            {
+              "x": 6,
+              "y": 0,
+              "width": 6,
+              "height": 5,
+              "content": {
+                "$ref": "#/spec/panels/redis-clients"
+              }
+            },
+            {
+              "x": 0,
+              "y": 5,
+              "width": 6,
+              "height": 5,
+              "content": {
+                "$ref": "#/spec/panels/redis-memory"
+              }
+            },
+            {
+              "x": 6,
+              "y": 5,
+              "width": 6,
+              "height": 5,
+              "content": {
+                "$ref": "#/spec/panels/redis-memory-pressure"
+              }
+            },
+            {
+              "x": 0,
+              "y": 10,
+              "width": 6,
+              "height": 5,
+              "content": {
+                "$ref": "#/spec/panels/redis-commands"
+              }
+            },
+            {
+              "x": 6,
+              "y": 10,
+              "width": 6,
+              "height": 5,
+              "content": {
+                "$ref": "#/spec/panels/redis-execution"
+              }
+            },
+            {
+              "x": 0,
+              "y": 15,
+              "width": 6,
+              "height": 5,
+              "content": {
+                "$ref": "#/spec/panels/redis-network"
+              }
+            },
+            {
+              "x": 6,
+              "y": 15,
+              "width": 6,
+              "height": 5,
+              "content": {
+                "$ref": "#/spec/panels/redis-hits"
+              }
+            },
+            {
+              "x": 0,
+              "y": 20,
+              "width": 6,
+              "height": 5,
+              "content": {
+                "$ref": "#/spec/panels/redis-rejections"
+              }
+            },
+            {
+              "x": 6,
+              "y": 20,
+              "width": 6,
+              "height": 5,
+              "content": {
+                "$ref": "#/spec/panels/redis-scrape"
+              }
+            }
+          ]
+        }
+      }
+    ],
+    "duration": "30m",
+    "refreshInterval": "5s",
+    "links": []
+  }
+}

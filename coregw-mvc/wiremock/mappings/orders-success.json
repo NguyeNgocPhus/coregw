@@ -1,0 +1,19 @@
+{
+  "name": "orders-success",
+  "priority": 10,
+  "request": {
+    "method": "POST",
+    "urlPath": "/orders"
+  },
+  "response": {
+    "status": 201,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "fixedDelayMilliseconds": 200,
+    "jsonBody": {
+      "orderId": "{{randomValue type='UUID'}}",
+      "status": "CREATED"
+    }
+  }
+}
